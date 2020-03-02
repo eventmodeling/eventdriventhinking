@@ -1,5 +1,4 @@
-﻿README
-# Values
+﻿# Values
 
 1. Make EventSourcing easy, effortless. 
 2. Encourage good practices however, don't limit development.
