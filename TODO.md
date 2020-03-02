@@ -1,4 +1,7 @@
 ﻿# TODO:
+## Cleanup:
+1. Remove old configuration system - pipes and so on... leave Fresh.
+
 ## Security
 
 We need to provide security thought the solution. This means that we should be able to choose security nuget thus implement required stuff for security. Technology that will provide authentication and authorization is choice of your own. 
