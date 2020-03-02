@@ -2,10 +2,10 @@
 # Values
 
 1. Make EventSourcing easy, effortless. 
-2. Encourage good practices however, don't forbid against something suspicious.
+2. Encourage good practices however, don't limit development.
 3. Never hide business complexity. 
 
-# Implications
+# Design
 ## Configuration through slices based on domain divided namespaces.
 
 Business logic is divided through namespaces. Each namespace should contain one slice, this is:
