@@ -1,0 +1,44 @@
+﻿using System;
+using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.EventInference.EventHandlers;
+using EventDrivenThinking.EventInference.Schema;
+using Microsoft.Extensions.DependencyInjection;
+
+namespace EventDrivenThinking.App.Configuration.Fresh
+{
+    public class ProjectionsConfig : SliceStageConfigBase<IProjectionSchema>
+    {
+        internal ProjectionsConfig(FeaturePartition partition) : base(partition)
+        {
+        }
+
+        private bool _noHandlers;
+        public ProjectionsConfig NoGlobalHandlers()
+        {
+            _noHandlers = true;
+            return this;
+        }
+
+        public override FeaturePartition Register(IServiceCollection collection)
+        {
+            foreach (var p in Partition.SchemaRegister.ProjectionSchema)
+            {
+                collection.AddScoped(p.Type);
+
+                collection.AddSingleton(typeof(IProjectionSchema<>).MakeGenericType(p.Type),
+                    Activator.CreateInstance(typeof(ProjectionSchema<>).MakeGenericType(p.Type), p));
+
+                if(!_noHandlers)
+                foreach (var et in p.Events)
+                {
+                    Type handlerProjectionType = typeof(ProjectionEventHandler<,>).MakeGenericType(p.Type, et);
+                    Type handlerInterfaceType = typeof(IEventHandler<>).MakeGenericType(et);
+                    collection.AddScoped(handlerInterfaceType, handlerProjectionType);
+                    Partition.Logger.Information("Discovered event handler {projectionName} for {eventName}", p.Type.Name, et.Name);
+                }
+            }
+
+            return base.Register(collection);
+        }
+    }
+}
