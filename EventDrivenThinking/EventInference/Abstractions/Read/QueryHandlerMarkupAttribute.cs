@@ -1,4 +1,6 @@
-﻿namespace EventDrivenThinking.EventInference.Abstractions.Read
+﻿using EventDrivenThinking.EventInference.Schema;
+
+namespace EventDrivenThinking.EventInference.Abstractions.Read
 {
     public class QueryHandlerMarkupAttribute : MarkupAttribute
     {

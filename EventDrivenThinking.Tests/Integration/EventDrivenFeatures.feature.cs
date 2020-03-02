@@ -10,7 +10,7 @@
 // ------------------------------------------------------------------------------
 #region Designer generated code
 #pragma warning disable
-namespace EventDriven.Tests.Integration
+namespace EventDrivenThinking.Tests.Integration
 {
     using TechTalk.SpecFlow;
     using System;
@@ -31,7 +31,7 @@ namespace EventDriven.Tests.Integration
 #line 1 "EventDrivenFeatures.feature"
 #line hidden
         
-        public EventDrivenFeaturesFeature(EventDrivenFeaturesFeature.FixtureData fixtureData, EventDriven_Tests_XUnitAssemblyFixture assemblyFixture, Xunit.Abstractions.ITestOutputHelper testOutputHelper)
+        public EventDrivenFeaturesFeature(EventDrivenFeaturesFeature.FixtureData fixtureData, EventDrivenThinking_Tests_XUnitAssemblyFixture assemblyFixture, Xunit.Abstractions.ITestOutputHelper testOutputHelper)
         {
             this._testOutputHelper = testOutputHelper;
             this.TestInitialize();

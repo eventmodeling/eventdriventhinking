@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EventDrivenThinking.EventInference.Abstractions
+namespace EventDrivenThinking.EventInference.Schema
 {
     public class MarkupAttribute:Attribute {
         public MarkupAttribute(Type serviceType)

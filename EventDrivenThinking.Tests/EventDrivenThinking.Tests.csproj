@@ -37,7 +37,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\EventDrivenThinking.Example\EventDriven.Example.csproj" />
+    <ProjectReference Include="..\EventDrivenThinking.Example\EventDrivenThniking.Example.csproj" />
     <ProjectReference Include="..\EventDrivenThinking\EventDrivenThinking.csproj" />
   </ItemGroup>
 
