@@ -4,7 +4,7 @@ using System.Linq;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Core;
 
-namespace EventDrivenUi.Tests.Model.Hotel
+namespace EventDrivenThinking.Example.Model.Hotel
 {
     public class HotelAggregate : Aggregate<HotelAggregate.State>
     {

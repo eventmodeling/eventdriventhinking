@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace EventDrivenUi.Example
+namespace EventDrivenThinking.Example.Ui
 {
     public class Model
     {

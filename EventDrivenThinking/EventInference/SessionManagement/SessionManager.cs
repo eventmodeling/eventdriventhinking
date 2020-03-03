@@ -25,5 +25,10 @@ namespace EventDrivenThinking.EventInference.SessionManagement
         {
             _sessions.TryRemove(sessionId, out ISession session);
         }
+
+        public bool SessionExists(Guid sessionId)
+        {
+            return _sessions.ContainsKey(sessionId);
+        }
     }
 }

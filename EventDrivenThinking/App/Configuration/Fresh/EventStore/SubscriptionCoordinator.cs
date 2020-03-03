@@ -32,6 +32,8 @@ namespace EventDrivenThinking.App.Configuration.Fresh.EventStore
         private readonly ICheckpointEventRepository<TEvent> _checkpointRepo;
         private readonly CatchUpSubscriptionSettings _settings;
         private EventStoreStreamCatchUpSubscription Subscription { get; set; }
+        private int _reconnectionCounter = 0;
+        private IEventStoreConnection _connection;
 
         public StreamEventReceiver(StreamJoinCoordinator coordinator, string streamName, int number, ICheckpointEventRepository<TEvent> checkpointRepo)
         {
@@ -44,9 +46,10 @@ namespace EventDrivenThinking.App.Configuration.Fresh.EventStore
 
         public async Task Subscribe(IEventStoreConnection connection)
         {
+            _connection = connection;
             _lastCheckpoint = await _checkpointRepo.GetLastCheckpoint();
             Debug.WriteLine($"Subscribing from {_lastCheckpoint ?? -1}");
-            this.Subscription = connection.SubscribeToStreamFrom(_streamName,
+            this.Subscription = _connection.SubscribeToStreamFrom(_streamName,
                 _lastCheckpoint,
                 _settings,
                 OnEventAppeared,
@@ -55,7 +58,16 @@ namespace EventDrivenThinking.App.Configuration.Fresh.EventStore
 
         private void OnSubscriptionDropped(EventStoreCatchUpSubscription arg1, SubscriptionDropReason arg2, Exception arg3)
         {
-            throw new NotImplementedException("We need to implement reconnect.");
+            //throw new NotImplementedException("We need to implement reconnect.");
+            Debug.WriteLine($"Subscription was dropped {_streamName} (reason = {arg2}, Exception = {arg3}), reconnecting.");
+            _reconnectionCounter += 1;
+            
+            this.Subscription = _connection.SubscribeToStreamFrom(_streamName,
+                _lastCheckpoint,
+                _settings,
+                OnEventAppeared,
+                OnLiveProcessingStarted, OnSubscriptionDropped);
+            
         }
 
         private void OnLiveProcessingStarted(EventStoreCatchUpSubscription obj)

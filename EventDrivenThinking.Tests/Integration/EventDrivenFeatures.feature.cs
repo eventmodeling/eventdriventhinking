@@ -80,14 +80,17 @@ namespace EventDrivenThinking.Tests.Integration
             this.TestTearDown();
         }
         
-        [Xunit.SkippableFactAttribute(DisplayName="I want to track every command execution")]
+        [Xunit.SkippableFactAttribute(DisplayName="I want to execute simple command against an aggregate")]
         [Xunit.TraitAttribute("FeatureTitle", "EventDrivenFeatures")]
-        [Xunit.TraitAttribute("Description", "I want to track every command execution")]
-        public virtual void IWantToTrackEveryCommandExecution()
+        [Xunit.TraitAttribute("Description", "I want to execute simple command against an aggregate")]
+        [Xunit.TraitAttribute("Category", "app")]
+        public virtual void IWantToExecuteSimpleCommandAgainstAnAggregate()
         {
-            string[] tagsOfScenario = ((string[])(null));
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("I want to track every command execution", null, ((string[])(null)));
-#line 4
+            string[] tagsOfScenario = new string[] {
+                    "app"};
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("I want to execute simple command against an aggregate", null, new string[] {
+                        "app"});
+#line 5
 this.ScenarioInitialize(scenarioInfo);
 #line hidden
             bool isScenarioIgnored = default(bool);
@@ -107,81 +110,44 @@ this.ScenarioInitialize(scenarioInfo);
             else
             {
                 this.ScenarioStart();
-            }
-            this.ScenarioCleanup();
-        }
-        
-        [Xunit.SkippableTheoryAttribute(DisplayName="I want to develop command-slice.")]
-        [Xunit.TraitAttribute("FeatureTitle", "EventDrivenFeatures")]
-        [Xunit.TraitAttribute("Description", "I want to develop command-slice.")]
-        [Xunit.InlineDataAttribute("Standalone", "InProc", "EventAggregator", "InProcRcp", "EventAggregator", new string[0])]
-        [Xunit.InlineDataAttribute("Standalone", "EventStore", "EventStore", "InProcRcp", "EventStore", new string[0])]
-        [Xunit.InlineDataAttribute("ClientServer", "EventStore", "EventStore", "Rest", "SignalR", new string[0])]
-        public virtual void IWantToDevelopCommand_Slice_(string appType, string eventStore, string serverProjectionSubscriptionMode, string commandInvocationTransport, string clientProjectionSubscriptionMode, string[] exampleTags)
-        {
-            string[] tagsOfScenario = exampleTags;
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("I want to develop command-slice.", null, exampleTags);
-#line 6
-this.ScenarioInitialize(scenarioInfo);
+                TechTalk.SpecFlow.Table table1 = new TechTalk.SpecFlow.Table(new string[] {
+                            "Property",
+                            "Value"});
+                table1.AddRow(new string[] {
+                            "Number",
+                            "101"});
+#line 7
+ testRunner.Given("The fact: Room was added:", ((string)(null)), table1, "Given ");
 #line hidden
-            bool isScenarioIgnored = default(bool);
-            bool isFeatureIgnored = default(bool);
-            if ((tagsOfScenario != null))
-            {
-                isScenarioIgnored = tagsOfScenario.Where(__entry => __entry != null).Where(__entry => String.Equals(__entry, "ignore", StringComparison.CurrentCultureIgnoreCase)).Any();
-            }
-            if ((this._featureTags != null))
-            {
-                isFeatureIgnored = this._featureTags.Where(__entry => __entry != null).Where(__entry => String.Equals(__entry, "ignore", StringComparison.CurrentCultureIgnoreCase)).Any();
-            }
-            if ((isScenarioIgnored || isFeatureIgnored))
-            {
-                testRunner.SkipScenario();
-            }
-            else
-            {
-                this.ScenarioStart();
-#line 8
-testRunner.Given(string.Format("The app is \'{0}\'", appType), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Given ");
-#line hidden
-#line 9
-testRunner.And(string.Format("The app uses \'{0}\' as eventStore", eventStore), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 10
-testRunner.And(string.Format("The app invokes command using \'{0}\'", commandInvocationTransport), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
+                TechTalk.SpecFlow.Table table2 = new TechTalk.SpecFlow.Table(new string[] {
+                            "Property",
+                            "Value"});
+                table2.AddRow(new string[] {
+                            "Number",
+                            "101"});
+                table2.AddRow(new string[] {
+                            "Start",
+                            "2020-03-03"});
+                table2.AddRow(new string[] {
+                            "End",
+                            "2020-03-04"});
 #line 11
-testRunner.And(string.Format("The server projection use \'{0}\' for subscriptions", serverProjectionSubscriptionMode), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+ testRunner.When("I book a room:", ((string)(null)), table2, "When ");
 #line hidden
-#line 12
-testRunner.And(string.Format("The client projection use \'{0}\' for subscriptions", clientProjectionSubscriptionMode), ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 13
-testRunner.And("I\'ve build the pipelines", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 14
-testRunner.And("I\'ve defined past from the events", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 15
-testRunner.And("I setup view-model", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 16
-testRunner.When("I invoke commands", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "When ");
-#line hidden
+                TechTalk.SpecFlow.Table table3 = new TechTalk.SpecFlow.Table(new string[] {
+                            "Property",
+                            "Value"});
+                table3.AddRow(new string[] {
+                            "Number",
+                            "101"});
+                table3.AddRow(new string[] {
+                            "Start",
+                            "2020-03-03"});
+                table3.AddRow(new string[] {
+                            "End",
+                            "2020-03-04"});
 #line 17
-testRunner.Then("The command-ui-event is published", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "Then ");
-#line hidden
-#line 18
-testRunner.And("The aggregate gets the command", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 19
-testRunner.And("The event is published", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 20
-testRunner.And("The projection gets the event", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
-#line hidden
-#line 21
-testRunner.And("The view-model gets changes", ((string)(null)), ((TechTalk.SpecFlow.Table)(null)), "And ");
+ testRunner.Then("I expect that room was booked:", ((string)(null)), table3, "Then ");
 #line hidden
             }
             this.ScenarioCleanup();

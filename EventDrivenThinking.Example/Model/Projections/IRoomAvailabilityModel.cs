@@ -1,8 +1,7 @@
 ﻿using System.Collections.Generic;
-using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 
-namespace EventDrivenUi.Tests.Model.Projections
+namespace EventDrivenThinking.Example.Model.Projections
 {
     public interface IRoomAvailabilityModel : IModel
     {

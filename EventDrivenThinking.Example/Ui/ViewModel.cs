@@ -2,9 +2,8 @@
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using EventDrivenUi.Example.Annotations;
 
-namespace EventDrivenUi.Example
+namespace EventDrivenThinking.Example.Ui
 {
     public class ViewModel : Model, INotifyPropertyChanged
     {

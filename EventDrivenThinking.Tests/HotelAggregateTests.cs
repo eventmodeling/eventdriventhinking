@@ -1,16 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using EventDrivenThinking.EventInference;
-using EventDrivenThinking.EventInference.Abstractions;
+﻿using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.Example.Model.Hotel;
 using EventDrivenThinking.Reflection;
-using EventDrivenUi.Tests.Model.Hotel;
 using FluentAssertions;
 using Xunit;
 using Xunit.Abstractions;
 
-namespace EventDrivenUi.Tests
+namespace EventDrivenThinking.Tests
 {
     public class FastCreateTest
     {

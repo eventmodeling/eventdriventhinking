@@ -1,8 +1,7 @@
 ﻿using System;
-using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Write;
 
-namespace EventDrivenUi.Tests.Model.Hotel
+namespace EventDrivenThinking.Example.Model.Hotel
 {
     
     public class BookRoom : ICommand

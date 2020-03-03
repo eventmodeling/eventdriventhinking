@@ -7,5 +7,6 @@ namespace EventDrivenThinking.EventInference.SessionManagement
         ISession this[Guid sessionId] { get; }
         void Register(Guid sessionId, ISession session);
         void DeRegister(Guid sessionId);
+        bool SessionExists(Guid sessionId);
     }
 }

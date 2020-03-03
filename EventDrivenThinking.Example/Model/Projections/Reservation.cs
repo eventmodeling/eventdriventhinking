@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace EventDrivenUi.Tests.Model.Projections
+namespace EventDrivenThinking.Example.Model.Projections
 {
     public class Reservation
     {

@@ -1,22 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Windows;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Projections;
+using EventDrivenThinking.Example.Model.Hotel;
 using EventDrivenThinking.Integrations.Unity;
 using EventDrivenThinking.Ui;
-using EventDrivenUi.Tests.Model.Hotel;
 using FluentAssertions;
 using Microsoft.Extensions.DependencyInjection;
-
 using Newtonsoft.Json;
 using Unity;
-using Unity.Lifetime;
 using Xunit;
 
-namespace EventDrivenUi.Tests.Integration
+namespace EventDrivenThinking.Tests.Integration
 {
     public interface IFoo
     {

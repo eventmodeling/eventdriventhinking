@@ -1,21 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Text;
-using System.Threading;
 using System.Threading.Tasks;
 using EventDrivenThinking.App.Configuration.Fresh.EventStore;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
-using EventDrivenUi.Tests.Model.Hotel;
+using EventDrivenThinking.Example.Model.Hotel;
 using EventStore.ClientAPI;
 using FluentAssertions;
 using NSubstitute;
-
 using Serilog.Core;
 using Xunit;
 
-namespace EventDrivenUi.Tests.EventStore
+namespace EventDrivenThinking.Tests.EventStore
 {
     public class StreamJoinCoordinatorTests
     {

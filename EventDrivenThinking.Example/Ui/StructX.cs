@@ -1,4 +1,4 @@
-﻿namespace EventDrivenUi.Example
+﻿namespace EventDrivenThinking.Example.Ui
 {
     public struct StructX
     {

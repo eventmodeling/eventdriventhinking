@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace EventDrivenUi.Tests.Model.Projections
+namespace EventDrivenThinking.Example.Model.Projections
 {
     public class RoomAvailabilityModel : IRoomAvailabilityModel
     {

@@ -1,17 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Reflection.Emit;
-using System.Runtime.CompilerServices;
-using System.Text;
+﻿using System.Runtime.CompilerServices;
 using EventDrivenThinking.Reflection;
 using FluentAssertions;
 using Xunit;
+
 [assembly: InternalsVisibleTo("DynamicMarkupAssembly")]
 
-namespace EventDrivenUi.Tests.Convention2Interface
+namespace EventDrivenThinking.Tests.Convention2Interface
 {
     interface IFoo2<out D, in T>
     {

@@ -64,7 +64,7 @@ namespace EventDrivenThinking.Integrations.Carter
         {
             if (_current == null) _current = new Session(_logger);
             string sessionIdStr = req.Headers["session-id"].FirstOrDefault();
-            if (Guid.TryParse(sessionIdStr, out Guid sessionId))
+            if (Guid.TryParse(sessionIdStr, out Guid sessionId) && _sessionManager.SessionExists(sessionId))
             {
                 _current.Init(_sessionManager[sessionId]);
             }

@@ -1,18 +1,15 @@
-﻿using System;
-using System.Collections.Specialized;
+﻿using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
-using EventDrivenThinking.EventInference;
+using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.Models;
-using EventDrivenThinking.EventInference.Projections;
-using EventDrivenUi.Tests.Model.Hotel;
-using EventDrivenUi.Tests.Model.Projections;
+using EventDrivenThinking.Example.Model.Hotel;
+using EventDrivenThinking.Example.Model.Projections;
 using FluentAssertions;
 using Xunit;
-using EventDrivenThinking.EventInference.Core;
 
-namespace EventDrivenUi.Tests
+namespace EventDrivenThinking.Tests
 {
     public class RoomAvailabilityProjectionTests
     {

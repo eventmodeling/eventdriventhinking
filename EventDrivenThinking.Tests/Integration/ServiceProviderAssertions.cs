@@ -1,7 +1,7 @@
 ﻿using System;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EventDrivenUi.Tests
+namespace EventDrivenThinking.Tests.Integration
 {
     public static class ServiceProviderAssertions
     {

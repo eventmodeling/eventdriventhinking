@@ -1,12 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Net;
-using System.Text;
 using System.Threading.Tasks;
 using EventStore.ClientAPI;
 using Xunit;
 
-namespace EventDrivenUi.Tests.EventStore
+namespace EventDrivenThinking.Tests.EventStore
 {
     public class ServerTests
     {

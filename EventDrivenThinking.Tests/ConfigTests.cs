@@ -1,6 +1,5 @@
 ﻿using System;
 using EventDrivenThinking.App.Configuration.Fresh;
-using EventDrivenThinking.App.Configuration.Fresh.EventStore;
 using EventDrivenThinking.App.Configuration.Fresh.Http;
 using EventDrivenThinking.Integrations.Unity;
 using Microsoft.Extensions.DependencyInjection;
@@ -8,7 +7,7 @@ using Serilog.Core;
 using Unity;
 using Xunit;
 
-namespace EventDrivenUi.Tests
+namespace EventDrivenThinking.Tests
 {
     public class ConfigTests
     {

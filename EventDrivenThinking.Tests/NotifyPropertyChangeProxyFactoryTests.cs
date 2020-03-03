@@ -1,23 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Collections.Specialized;
-using System.ComponentModel;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using System.ComponentModel;
 using AutoFixture;
 using AutoMapper;
-using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Example.Ui;
 using EventDrivenThinking.Ui;
-using EventDrivenUi.Example;
 using FluentAssertions;
-using Serilog;
-using Unity.Injection;
 using Xunit;
 
-namespace EventDrivenUi.Tests
+namespace EventDrivenThinking.Tests
 {
     public class NotifyPropertyChangeProxyFactoryTests
     {
@@ -26,7 +15,7 @@ namespace EventDrivenUi.Tests
         [Fact]
         public void GetShouldBePropagated()
         {
-            var model = _fixture.Create<Example.Model>();
+            var model = _fixture.Create<Model>();
             model.NestedItems.Add(new ClassX());
 
             var actual = Create(model);
@@ -37,7 +26,7 @@ namespace EventDrivenUi.Tests
         [Fact]
         public void ProxyShouldNotRiseEventsWhenValuesAreSame()
         {
-            var model = _fixture.Create<Example.Model>();
+            var model = _fixture.Create<Model>();
 
             var actual = Create(model);
             actual.StringArg = "NewString";
@@ -60,7 +49,7 @@ namespace EventDrivenUi.Tests
         [Fact]
         public void ProxyShouldRiseEvents()
         {
-            var model = _fixture.Create<Example.Model>();
+            var model = _fixture.Create<Model>();
 
             var actual = Create(model);
 
@@ -82,17 +71,17 @@ namespace EventDrivenUi.Tests
         [Fact]
         public void ProxyShouldImplementNotifyPropertyChanged()
         {
-            var model = _fixture.Create<Example.Model>();
+            var model = _fixture.Create<Model>();
 
             var actual = Create(model);
 
             actual.Should().BeAssignableTo<INotifyPropertyChanged>();
         }
 
-        private Example.Model Create(Example.Model root)
+        private Model Create(Model root)
         {
             
-            var derived = ViewModelFactory<Example.Model>.Create();
+            var derived = ViewModelFactory<Model>.Create();
 
             INotifyPropertyChanged nc = (INotifyPropertyChanged) derived;
             
@@ -100,7 +89,7 @@ namespace EventDrivenUi.Tests
             var mapper = config.CreateMapper();
             // or
             
-            var vm = (Example.Model)mapper.Map(root, root.GetType(), derived.GetType());
+            var vm = (Model)mapper.Map(root, root.GetType(), derived.GetType());
 
             foreach (var i in root.NestedItems) vm.NestedItems.Add(i);
 

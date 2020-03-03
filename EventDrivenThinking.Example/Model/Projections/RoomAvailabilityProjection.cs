@@ -1,12 +1,11 @@
 ﻿using System.Linq;
 using System.Threading.Tasks;
-using EventDrivenThinking.EventInference;
 using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.Models;
-using EventDrivenUi.Tests.Model.Hotel;
-using EventDrivenUi.Tests.Model.Projections;
+using EventDrivenThinking.Example.Model.Hotel;
+
 #pragma warning disable 1998
-namespace EventDrivenUi.Tests.Model.Hotel
+namespace EventDrivenThinking.Example.Model.Projections
 {
     public class RoomAvailabilityProjection : Projection<IRoomAvailabilityModel>
     {
