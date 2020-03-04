@@ -47,6 +47,54 @@ namespace EventDrivenThinking.Utils
             return -1;
         }
     }
+    public static class BinarySearchUtils
+    {
+        public static int BinarySearchIndexOf<TItem>(this IList<TItem> list,
+            TItem targetValue, IComparer<TItem> comparer = null)
+        {
+            Func<TItem, TItem, int> compareFunc =
+                comparer != null ? comparer.Compare :
+                    (Func<TItem, TItem, int>)Comparer<TItem>.Default.Compare;
+            int index = BinarySearchIndexOfBy(list, compareFunc, targetValue);
+            return index;
+        }
+
+        public static int BinarySearchIndexOfBy<TItem, TValue>(this IList<TItem> list,
+            Func<TItem, TValue, int> comparer, TValue value)
+        {
+            if (list == null)
+                throw new ArgumentNullException("list");
+
+            if (comparer == null)
+                throw new ArgumentNullException("comparer");
+
+            if (list.Count == 0)
+                return -1;
+
+            // Implementation below copied largely from .NET4
+            // ArraySortHelper.InternalBinarySearch()
+            int lo = 0;
+            int hi = list.Count - 1;
+            while (lo <= hi)
+            {
+                int i = lo + ((hi - lo) >> 1);
+                int order = comparer(list[i], value);
+
+                if (order == 0)
+                    return i;
+                if (order < 0)
+                {
+                    lo = i + 1;
+                }
+                else
+                {
+                    hi = i - 1;
+                }
+            }
+
+            return ~lo;
+        }
+    }
     public static class StringExtensions
     {
         public static Guid ToGuid(this string str)

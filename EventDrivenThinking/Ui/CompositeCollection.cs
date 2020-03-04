@@ -10,12 +10,16 @@ using ProtoBuf;
 
 namespace EventDrivenThinking.Ui
 {
-    public class CompositeCollection<T> : IViewModelCollection<T>, ICollection<IViewModelCollection<T>>
+    public class CompositeCollection<T> : IViewModelCollection<T>, 
+        ICollection<IViewModelCollection<T>>
     {
+        private bool _isOrdered;
+
         private readonly List<IViewModelCollection<T>> _sources;
         private readonly ObservableCollection<T> _items;
-        public CompositeCollection()
+        public CompositeCollection(bool ordered = false)
         {
+            _isOrdered = ordered;
             _items = new ObservableCollection<T>();
             _sources = new List<IViewModelCollection<T>>();
             _items.CollectionChanged += (s, e) => RaiseOnCollectionChanged(e);
@@ -73,20 +77,49 @@ namespace EventDrivenThinking.Ui
         public void Add(IViewModelCollection<T> item)
         {
             _sources.Add(item);
-            _items.AddRange(item);
+            if (_isOrdered)
+            {
+               
+            }
+            else
+                _items.AddRange(item);
             Wire(item);
         }
 
         private void Wire(IViewModelCollection<T> item)
         {
-            item.CollectionChanged += OnCollectionChanged;
+            if(_isOrdered)
+                item.CollectionChanged += OnCollectionSortedChanged;
+            else
+                item.CollectionChanged += OnCollectionChanged;
             item.PropertyChanged += OnPropertyChanged;
         }
 
+        private void InternalAddSortedRange(IEnumerable<T> items)
+        {
+            foreach (var i in items)
+            {
+                if (_items.Count == 0)
+                {
+                    _items.Add(i);
+                    continue;
+                }
+
+                var index = _items.BinarySearchIndexOf(i);
+                if (index < 0)
+                    index = -index - 1;
+
+                if (index == _items.Count) // last element
+                {
+                    _items.Add(i);
+                } 
+                else _items.Insert(index, i); // somewhere in the middle
+            }
+        }
         private void OnPropertyChanged(object sender, PropertyChangedEventArgs e)
         {
             var pc = PropertyChanged;
-            pc(this, new PropertyChangedEventArgs(e.PropertyName));
+            pc?.Invoke(this, new PropertyChangedEventArgs(e.PropertyName));
         }
 
         private void OnCollectionChanged(object sender, NotifyCollectionChangedEventArgs e)
@@ -105,6 +138,34 @@ namespace EventDrivenThinking.Ui
                     var index = _items.IndexOf((T) e.OldItems[0]);
                     _items[index] = (T) e.NewItems[0];
                     if(e.NewItems.Count > 1)
+                        throw new NotSupportedException();
+                    break;
+                case NotifyCollectionChangedAction.Move:
+                    // we dont do anything
+                    break;
+                case NotifyCollectionChangedAction.Reset:
+                    throw new NotSupportedException();
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException();
+            }
+        }
+        private void OnCollectionSortedChanged(object sender, NotifyCollectionChangedEventArgs e)
+        {
+            switch (e.Action)
+            {
+                case NotifyCollectionChangedAction.Add:
+                    InternalAddSortedRange(e.NewItems.Cast<T>());
+                    break;
+
+                case NotifyCollectionChangedAction.Remove:
+                    _items.RemoveAll(e.OldItems.Cast<T>());
+                    break;
+
+                case NotifyCollectionChangedAction.Replace:
+                    var index = _items.IndexOf((T)e.OldItems[0]);
+                    _items[index] = (T)e.NewItems[0];
+                    if (e.NewItems.Count > 1)
                         throw new NotSupportedException();
                     break;
                 case NotifyCollectionChangedAction.Move:
@@ -173,10 +234,23 @@ namespace EventDrivenThinking.Ui
             get { return _items.Count; }
         }
 
+        public T this[int index]
+        {
+            get { return _items[index]; }
+        }
+
         public bool IsReadOnly
         {
             get => ((ICollection<T>)_items).IsReadOnly;
         }
+
+        public int IndexOf(IViewModelCollection<T> item)
+        {
+            return _sources.IndexOf(item);
+        }
+
+        
+
         
     }
 }
