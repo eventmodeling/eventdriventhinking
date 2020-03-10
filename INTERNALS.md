@@ -47,3 +47,8 @@
 3.3 Rewrite history ?
 3.4 Accept merge or reject or ignore ?
 3.5 When merge is provided though SignalR protocol. 
+
+## Live Query Execution
+1. Client can query with a REST to get last "snapshot" of a model. 
+2. Then automatically it subscribes to a kown partition - that is related to query predicate.
+3. When projection kicks in, the partition is calculated and events are published to this group.

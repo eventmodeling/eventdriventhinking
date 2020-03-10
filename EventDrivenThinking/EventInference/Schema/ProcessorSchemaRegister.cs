@@ -62,7 +62,7 @@ namespace EventDrivenThinking.EventInference.Schema
                     ProcessorSchema m = new ProcessorSchema(type, ServiceConventions.GetCategoryFromNamespace(type.Namespace));
                     _metadata.Add(m);
 
-                    foreach (var whenMethod in GetWhenMethods(type))
+                    foreach (var whenMethod in GetWhenMethods(type)) // We should throw exception on every method that has a name When but unsupported signature.
                     {
                         var eventType = whenMethod.GetParameters()[1].ParameterType;
                         _event2ProcessorType.TryAdd(eventType, m);
@@ -79,12 +79,13 @@ namespace EventDrivenThinking.EventInference.Schema
 
         private IEnumerable<MethodInfo> GetWhenMethods(Type t)
         {
-            var whens = t.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public);
+            var whens = t.GetMethods(BindingFlags.Static | BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 
 
             // BindingFlags.Public
             return whens.Where(x => x.Name == "When"
                                     && x.GetParameters().Length == 2
+                                    && !x.IsGenericMethod
                                     && typeof(EventMetadata).IsAssignableFrom(x.GetParameters()[0].ParameterType)
                                     && typeof(IEvent).IsAssignableFrom(x.GetParameters()[1].ParameterType));
         }

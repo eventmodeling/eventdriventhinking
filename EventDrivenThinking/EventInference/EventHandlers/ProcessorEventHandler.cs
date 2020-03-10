@@ -32,12 +32,12 @@ namespace EventDrivenThinking.EventInference.EventHandlers
             // from how errors are handled.
             _logger.Information("{processorName} received from {aggregateId} an {eventName} {eventId}", typeof(TProcessor).Name, m.AggregateId, typeof(TEvent).Name, ev.Id);
 
-            var commands = _processor.When(m, ev).ToArray();
+            var commands = await _processor.When(m, ev);
             Task[] tasks = new Task[commands.Length];
             for (var index = 0; index < commands.Length; index++)
             {
-                var (aggregateId, cmd) = commands[index];
-                tasks[index] = _commandDispatcher.Dispatch(aggregateId, cmd);
+                var cmdEnv = commands[index];
+                tasks[index] = _commandDispatcher.Dispatch(cmdEnv.Id, cmdEnv.Command);
             }
 
             await Task.WhenAll(tasks);

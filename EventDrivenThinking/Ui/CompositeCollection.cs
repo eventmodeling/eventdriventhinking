@@ -14,12 +14,14 @@ namespace EventDrivenThinking.Ui
         ICollection<IViewModelCollection<T>>
     {
         private bool _isOrdered;
+        private readonly IComparer<T> _comparer;
 
         private readonly List<IViewModelCollection<T>> _sources;
         private readonly ObservableCollection<T> _items;
-        public CompositeCollection(bool ordered = false)
+        public CompositeCollection(bool ordered = false, IComparer<T> comparer = null)
         {
             _isOrdered = ordered;
+            _comparer = comparer;
             _items = new ObservableCollection<T>();
             _sources = new List<IViewModelCollection<T>>();
             _items.CollectionChanged += (s, e) => RaiseOnCollectionChanged(e);
@@ -105,7 +107,7 @@ namespace EventDrivenThinking.Ui
                     continue;
                 }
 
-                var index = _items.BinarySearchIndexOf(i);
+                var index = _items.BinarySearchIndexOf(i, _comparer);
                 if (index < 0)
                     index = -index - 1;
 
@@ -163,8 +165,8 @@ namespace EventDrivenThinking.Ui
                     break;
 
                 case NotifyCollectionChangedAction.Replace:
-                    var index = _items.IndexOf((T)e.OldItems[0]);
-                    _items[index] = (T)e.NewItems[0];
+                    _items.Remove((T) e.OldItems[0]);
+                    InternalAddSortedRange(e.NewItems.Cast<T>());
                     if (e.NewItems.Count > 1)
                         throw new NotSupportedException();
                     break;

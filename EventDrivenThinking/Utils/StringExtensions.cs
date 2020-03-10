@@ -24,6 +24,12 @@ namespace EventDrivenThinking.Utils
 
             return collection;
         }
+        public static IEnumerable<T> NotNull<T>(this IEnumerable<T> collection)
+        {
+            if (collection != null)
+                return collection;
+            return Array.Empty<T>();
+        }
         public static Collection<T> RemoveWhen<T>(this Collection<T> collection, Predicate<T> predicate)
         {
             if (collection == null)
