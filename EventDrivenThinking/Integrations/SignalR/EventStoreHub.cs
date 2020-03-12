@@ -67,7 +67,19 @@ namespace EventDrivenThinking.Integrations.SignalR
             _logger.Information("Session {sessionId} registered.", sessionId);
             await Groups.AddToGroupAsync(Context.ConnectionId, sessionId.ToString());
         }
-        public async Task Subscribe(bool isPersistent, string eventName)
+
+        public async Task SubscribeToProjection(string projectionName)
+        {
+            // we need to use the subscriptionId to transfer old events.
+            // and than add to appropriate group 
+
+        }
+        public async Task SubscribeToProjectionPartition(string projectionName, Guid partition)
+        {
+            // we need to use the subscriptionId to transfer old events.
+            // and than add to appropriate group 
+        }
+        public async Task SubscribeToEvent(bool isPersistent, string eventName)
         {
             var sessionId = _register[this.Context.ConnectionId];
             var session = _sessionManager[sessionId];

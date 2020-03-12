@@ -29,5 +29,18 @@ namespace EventDrivenThinking.EventInference.Models
 
         // should do it somehow another way
         public Guid UserId { get; set; }
+        public bool IsLink { get; set; }
+        public EventMetadata AsLink()
+        {
+            return new EventMetadata()
+            {
+                AggregateId = this.AggregateId,
+                AggregateType = this.AggregateType,
+                CorrelationId = this.CorrelationId,
+                IsLink = true,
+                TimeStamp = this.TimeStamp,
+                UserId = this.UserId
+            };
+        }
     }
 }

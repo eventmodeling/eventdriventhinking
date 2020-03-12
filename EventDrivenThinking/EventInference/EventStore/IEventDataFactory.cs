@@ -7,6 +7,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 {
     public interface IEventDataFactory
     {
+        EventData Create(EventMetadata em, IEvent ev, Func<Type, string> evName);
         EventData Create(EventMetadata em, IEvent ev);
         EventData Create(EventEnvelope ev);
     }

@@ -23,6 +23,7 @@ namespace EventDrivenThinking.EventInference.Projections
             Action<IEnumerable<EventEnvelope>> onEvent)
         {
             // uhh we can subscribe for all or customize subscription process.
+
             _subscriptionManager.Subscribe(_schema.Events, true, onEvent);
         }
     }

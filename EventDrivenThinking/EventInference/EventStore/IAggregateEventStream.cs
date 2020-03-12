@@ -6,6 +6,8 @@ using EventDrivenThinking.EventInference.Models;
 
 namespace EventDrivenThinking.EventInference.EventStore
 {
+    
+
     public interface IAggregateEventStream<TAggregate>
     {
         IAsyncEnumerable<IEvent> Get(Guid key);

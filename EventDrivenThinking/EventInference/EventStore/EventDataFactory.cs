@@ -21,16 +21,20 @@ namespace EventDrivenThinking.EventInference.EventStore
     }
     public sealed class EventDataFactory : IEventDataFactory
     {
-        public EventData Create(EventMetadata em, IEvent ev)
+        public EventData Create(EventMetadata em, IEvent ev, Func<Type, string> evName)
         {
             var str = JsonConvert.SerializeObject(ev);
             var evData = Encoding.UTF8.GetBytes(str);
 
-            
             var strMeta = JsonConvert.SerializeObject(em);
             var evMeta = Encoding.UTF8.GetBytes(strMeta);
 
-            return new EventData(ev.Id, ev.GetType().Name, true, evData, evMeta);
+            var evTypeName = evName(ev.GetType());
+            return new EventData(ev.Id, evTypeName, true, evData, evMeta);
+        }
+        public EventData Create(EventMetadata em, IEvent ev)
+        {
+            return Create(em, ev, ev => ev.Name);
         }
 
         public EventData Create(EventEnvelope ev)

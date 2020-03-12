@@ -6,9 +6,11 @@ using System.Text;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Write;
+using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
 using EventStore.ClientAPI;
+using EventStore.ClientAPI.PersistentSubscriptions;
 using Newtonsoft.Json;
 using ILogger = Serilog.ILogger;
 
@@ -63,9 +65,13 @@ namespace EventDrivenThinking.EventInference.EventStore
             var streamName = GetStreamName(key);
             var data = published.Select(x =>new EventEnvelope(x, _metadataFactory.Create(key, correlationId,x)))
                 .ToArray();
+
+            
             using (var tran = await _connection.StartTransactionAsync(streamName, version))
             {
+                
                 var evData = data.Select(_eventDataFactory.Create);
+                
                 await tran.WriteAsync(evData);
                 await tran.CommitAsync();
             }

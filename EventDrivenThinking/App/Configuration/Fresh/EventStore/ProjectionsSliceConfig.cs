@@ -22,7 +22,10 @@ namespace EventDrivenThinking.App.Configuration.Fresh.EventStore
                 {
                     Type[] args = new Type[]{i.Type, v};
                     serviceCollection.AddSingleton(typeof(ICheckpointRepository<,>).MakeGenericType(args), 
-                        typeof(NullCheckpointRepository<,>).MakeGenericType(args));
+                        typeof(FileCheckpointRepository<,>).MakeGenericType(args));
+
+                    serviceCollection.AddSingleton(typeof(IProjectionEventStream<>).MakeGenericType(i.Type),
+                        typeof(ProjectionEventStream<>).MakeGenericType(i.Type));
                 }
             }
         }

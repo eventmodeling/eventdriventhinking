@@ -1,16 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Windows;
 using EventDrivenThinking.EventInference.Models;
-using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.Example.Model.Hotel;
-using EventDrivenThinking.Integrations.Unity;
-using EventDrivenThinking.Ui;
 using FluentAssertions;
-using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
-using Unity;
 using Xunit;
 
 namespace EventDrivenThinking.Tests.Integration
@@ -21,87 +14,6 @@ namespace EventDrivenThinking.Tests.Integration
     }
     public class Foo : IFoo { }
     public class Foo2 : IFoo { }
-    public class UnityServiceScopeFactoryTests
-    {
-        [Fact]
-        public void UnityIsRegistered()
-        {
-            UnityContainer c = new UnityContainer();
-            c.RegisterInstance<IServiceScopeFactory>(new UnityServiceScopeFactory(c));
-            var sp = new UnityServiceProvider(c);
-            c.RegisterInstance<IServiceProvider>(sp);
-            c.RegisterSingleton<IFoo, Foo>();
-
-            c.IsRegistered(typeof(IFoo)).Should().BeTrue();
-        }
-
-        [Fact]
-        public void UnityNotEnumerable()
-        {
-            UnityContainer c = new UnityContainer();
-            c.RegisterInstance<IServiceScopeFactory>(new UnityServiceScopeFactory(c));
-            var sp = new UnityServiceProvider(c);
-            c.RegisterInstance<IServiceProvider>(sp);
-            c.RegisterSingleton<IFoo, Foo>();
-            
-            var service = sp.GetRequiredService<IFoo>();
-            service.Should().NotBeNull();
-        }
-
-        [Fact]
-        public void UnityEnumerable()
-        {
-            UnityContainer c = new UnityContainer();
-            c.RegisterInstance<IServiceScopeFactory>(new UnityServiceScopeFactory(c));
-            var sp = new UnityServiceProvider(c);
-            c.RegisterInstance<IServiceProvider>(sp);
-            c.RegisterSingleton<IFoo, Foo>("a");
-            c.RegisterSingleton<IFoo, Foo2>("b");
-
-
-            var services = sp.GetRequiredService<IEnumerable<IFoo>>().ToArray();
-            services.Length.Should().Be(2);
-        }
-
-        [Fact]
-        public void Singleton()
-        {
-            UnityContainer c = new UnityContainer();
-            c.RegisterInstance<IServiceScopeFactory>(new UnityServiceScopeFactory(c));
-            var sp = new UnityServiceProvider(c);
-            c.RegisterInstance<IServiceProvider>(sp);
-            c.RegisterSingleton<IFoo, Foo>();
-
-            IFoo expected = c.Resolve<IFoo>();
-            IFoo actual = null;
-            using (var scope = sp.CreateScope())
-            {
-                actual = scope.ServiceProvider.GetService<IFoo>();
-            }
-
-            actual.Should().Be(expected);
-        }
-
-        [Fact]
-        public void ModelFactoryTest()
-        {
-            UnityContainer c = new UnityContainer();
-            c.RegisterInstance<IServiceScopeFactory>(new UnityServiceScopeFactory(c));
-            var sp = new UnityServiceProvider(c);
-            c.RegisterInstance<IServiceProvider>(sp);
-
-            
-            c.RegisterFactory<Foo>(uc => uc.Resolve<IModelFactory>().Create<Foo>(), FactoryLifetime.Singleton);
-
-            IModelFactory m = new UiModelFactory(sp);
-            c.RegisterInstance<IModelFactory>(m);
-            var expected = c.Resolve<Foo>();
-            var actual = c.Resolve<Foo>();
-
-            actual.Should().Be(expected);
-        }
-
-    }
 
     public class SerializationTests
     {

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
@@ -22,16 +23,18 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             IModelSubscriber<TModel> subscriber, ILogger logger)
         {
             _serviceProvider = serviceProvider;
-            
-
             _subscriber = subscriber;
             _logger = logger;
+            Debug.WriteLine($"QueryEngine for model {typeof(TModel).Name} created.");
         }
 
         public TModel CreateOrGet()
         {
             if (_model == null)
+            {
                 _model = ActivatorUtilities.GetServiceOrCreateInstance<TModel>(_serviceProvider);
+                Debug.WriteLine($"Model {typeof(TModel).Name} created from serivceProvider.");
+            }
             return _model;
         }
 
