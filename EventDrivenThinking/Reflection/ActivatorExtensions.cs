@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.CompilerServices;
@@ -10,7 +11,40 @@ using System.Runtime.CompilerServices;
 
 namespace EventDrivenThinking.Reflection
 {
-    
+    public static class TypeExtensions
+    {
+        public static IEnumerable<Type> WithAttribute<TAttribute>(this IEnumerable<Type> types, Predicate<TAttribute> predicate) where TAttribute : Attribute
+        {
+            foreach (var type in types)
+            {
+                var att = type.GetCustomAttribute<TAttribute>();
+                if (att != null && predicate(att))
+                    yield return type;
+            }
+        }
+        public static bool ImplementsOpenInterface(this Type t, Type openTypeDefinition)
+        {
+            if (openTypeDefinition.IsGenericTypeDefinition)
+            {
+                return t.GetInterfaces().Where(x => x.IsGenericType)
+                    .Any(x => x.GetGenericTypeDefinition() == openTypeDefinition);
+            }
+
+            return false;
+        }
+
+        public static IEnumerable<Type> FindOpenInterfaces(this Type t, Type openTypeDefinition)
+        {
+            if (openTypeDefinition.IsGenericTypeDefinition)
+            {
+                var items = t.GetInterfaces().Where(x => x.IsGenericType)
+                    .Where(x => x.GetGenericTypeDefinition() == openTypeDefinition);
+                return items;
+            }
+
+            return Array.Empty<Type>();
+        }
+    }
 
     public class Ctor<TInterface>
     {

@@ -87,12 +87,9 @@ namespace EventDrivenThinking.EventInference.Schema
             return _aggregates[aggregate];
         }
 
-        public void Discover(params Assembly[] assemblies)
+        public void Discover(IEnumerable<Type> types)
         {
-            foreach (var a in assemblies)
-            {
-                var types = a.GetTypes();
-                var aggregateTypes = types
+            var aggregateTypes = types
                     .Where(t => typeof(IAggregate).IsAssignableFrom(t) && !t.IsAbstract)
                     .ToArray();
 
@@ -135,7 +132,6 @@ namespace EventDrivenThinking.EventInference.Schema
                     else 
                         Debug.WriteLine($"Found a dangling command: {command.FullName}");
                 }
-            }
         }
 
         public string GetCategory(Type command)

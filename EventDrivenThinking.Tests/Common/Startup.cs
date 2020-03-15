@@ -5,7 +5,7 @@ using System.Net.Http;
 using System.Reflection;
 using System.Threading.Tasks;
 using Carter;
-using EventDrivenThinking.App.Configuration.Fresh;
+using EventDrivenThinking.App.Configuration;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.Example.Model.Hotel;

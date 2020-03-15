@@ -21,7 +21,7 @@ namespace EventDrivenThinking.Tests.Integration
         [Fact]
         public void EventMetadataCanBeSerialized()
         {
-            EventMetadata m = new EventMetadata(Guid.NewGuid(), typeof(HotelAggregate), Guid.NewGuid());
+            EventMetadata m = new EventMetadata(Guid.NewGuid(), typeof(HotelAggregate), Guid.NewGuid(),0);
             var str = JsonConvert.SerializeObject(m);
             var actual = JsonConvert.DeserializeObject<EventMetadata>(str);
             actual.Should().BeEquivalentTo(m);

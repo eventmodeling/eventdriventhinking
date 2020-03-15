@@ -19,11 +19,11 @@ namespace EventDrivenThinking.EventInference.EventHandlers
         private readonly TProjection _projection;
         private readonly ILogger _logger;
         private readonly IProjectionEventStream<TProjection> _projectionStream;
-        private readonly IEnumerable<IProjectionPartitioner<TProjection>> _partitioners;
+        private readonly IEnumerable<IProjectionStreamPartitioner<TProjection>> _partitioners;
 
         public ProjectionEventHandler(TProjection projection, ILogger logger, 
             IProjectionEventStream<TProjection> projectionStream,
-            IEnumerable<IProjectionPartitioner<TProjection>> partitioners)
+            IEnumerable<IProjectionStreamPartitioner<TProjection>> partitioners)
         {
             _projection = projection;
             _logger = logger;
@@ -40,7 +40,9 @@ namespace EventDrivenThinking.EventInference.EventHandlers
 
             foreach (var i in _partitioners)
             {
-                await _projectionStream.AppendPartition(i.CalculatePartition(_projection.Model, m, ev), m, ev);
+                var partitions = i.CalculatePartitions(_projection.Model, m, ev);
+                foreach(var p in partitions)
+                    await _projectionStream.AppendPartition(p, m, ev);
             }
             // get all queries against the model. 
             // calculate query-streams name from the above

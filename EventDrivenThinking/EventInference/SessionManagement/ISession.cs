@@ -14,5 +14,7 @@ namespace EventDrivenThinking.EventInference.SessionManagement
         ICollection<Subscription> Subscriptions { get; }
         void RegisterSubscriptionForEvent(Type eventType);
         Task SendEventCore(EventMetadata m, IEvent ev);
+        Task SendEvents(Guid reqId, IEnumerable<EventEnvelope> events);
+        
     }
 }

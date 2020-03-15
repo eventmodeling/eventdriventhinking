@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading.Tasks;
-using EventDrivenThinking.App.Configuration.Fresh.EventStore;
+using EventDrivenThinking.App.Configuration.EventStore;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.Example.Model.Hotel;
@@ -115,7 +115,7 @@ namespace EventDrivenThinking.Tests.EventStore
 
         private async Task PushEvent<TEvent>(int nr,TEvent ev, DateTimeOffset at) where TEvent : IEvent
         {
-            await sut.Push(nr, new EventMetadata(Guid.NewGuid(), typeof(HotelAggregate), Guid.NewGuid())
+            await sut.Push(nr, new EventMetadata(Guid.NewGuid(), typeof(HotelAggregate), Guid.NewGuid(),0)
             {
                 TimeStamp = at
             }, ev);

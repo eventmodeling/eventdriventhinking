@@ -16,9 +16,9 @@ namespace EventDrivenThinking.Tests.Convention2Interface
         D Hello(T arg);
     }
 
-    internal class Foo
+    public class Foo
     {
-        internal virtual string Hello(string arg)
+        public virtual string Hello(string arg)
         {
             return arg;
         }
@@ -31,7 +31,7 @@ namespace EventDrivenThinking.Tests.Convention2Interface
         [Fact]
         public void CheckInheritance()
         {
-            MarkupOpenGenericFactory openGenericFactory = new MarkupOpenGenericFactory(typeof(Foo), typeof(IFoo<,>));
+            MarkupOpenGenericFactory openGenericFactory = MarkupOpenGenericFactory.Create(typeof(Foo), typeof(IFoo<,>));
 
             var sut = openGenericFactory.Create<IFoo<string,string>>();
 
@@ -43,7 +43,7 @@ namespace EventDrivenThinking.Tests.Convention2Interface
         [Fact]
         public void CheckInverseInheritance()
         {
-            MarkupOpenGenericFactory openGenericFactory2 = new MarkupOpenGenericFactory(typeof(Foo), typeof(IFoo2<,>));
+            MarkupOpenGenericFactory openGenericFactory2 = MarkupOpenGenericFactory.Create(typeof(Foo), typeof(IFoo2<,>));
 
             var sut2 = openGenericFactory2.Create<IFoo2<string, string>>();
 

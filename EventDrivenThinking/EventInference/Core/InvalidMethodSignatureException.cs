@@ -12,7 +12,8 @@ namespace EventDrivenThinking.EventInference.Core
         {
             
         }
-        public InvalidMethodSignatureException(MethodInfo mth)
+        public InvalidMethodSignatureException(MethodInfo mth) : this(mth, $"Signature of a method '{mth.Name}' is invalid.") { }
+        public InvalidMethodSignatureException(MethodInfo mth, string message) : base(message)
         {
             MethodName = mth.Name;
             ClassName = mth.DeclaringType?.FullName;

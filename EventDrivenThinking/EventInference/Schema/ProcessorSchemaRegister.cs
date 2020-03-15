@@ -49,27 +49,25 @@ namespace EventDrivenThinking.EventInference.Schema
             return _event2ProcessorType[evType];
         }
 
-        public void Discover(params Assembly[] assemblies)
+        public void Discover(IEnumerable<Type> types)
         {
-            foreach (var a in assemblies)
+            var processorTypes = types
+                .Where(t => typeof(IProcessor).IsAssignableFrom(t) && !t.IsAbstract)
+                .ToArray();
+
+            foreach (var type in processorTypes)
             {
-                var processorTypes = a.GetTypes()
-                    .Where(t => typeof(IProcessor).IsAssignableFrom(t) && !t.IsAbstract)
-                    .ToArray();
+                ProcessorSchema m = new ProcessorSchema(type, ServiceConventions.GetCategoryFromNamespace(type.Namespace));
+                _metadata.Add(m);
 
-                foreach (var type in processorTypes)
+                foreach (var whenMethod in GetWhenMethods(type)) // We should throw exception on every method that has a name When but unsupported signature.
                 {
-                    ProcessorSchema m = new ProcessorSchema(type, ServiceConventions.GetCategoryFromNamespace(type.Namespace));
-                    _metadata.Add(m);
-
-                    foreach (var whenMethod in GetWhenMethods(type)) // We should throw exception on every method that has a name When but unsupported signature.
-                    {
-                        var eventType = whenMethod.GetParameters()[1].ParameterType;
-                        _event2ProcessorType.TryAdd(eventType, m);
-                        m.AddEventType(eventType);
-                    }
+                    var eventType = whenMethod.GetParameters()[1].ParameterType;
+                    _event2ProcessorType.TryAdd(eventType, m);
+                    m.AddEventType(eventType);
                 }
             }
+
             Events = _event2ProcessorType.Keys.ToArray();
         }
 

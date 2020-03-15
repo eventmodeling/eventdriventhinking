@@ -5,6 +5,7 @@ using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading;
+using Newtonsoft.Json;
 
 namespace EventDrivenThinking.Utils
 {
@@ -103,6 +104,14 @@ namespace EventDrivenThinking.Utils
     }
     public static class StringExtensions
     {
+        public static T FromJsonBytes<T>(this byte[] data)
+        {
+            return JsonConvert.DeserializeObject<T>(Encoding.UTF8.GetString(data));
+        }
+        public static byte[] ToJsonBytes<TObject>(TObject obj)
+        {
+            return Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(obj));
+        }
         public static Guid ToGuid(this string str)
         {
             if (!Guid.TryParse(str, out Guid result))

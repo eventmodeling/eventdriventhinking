@@ -6,6 +6,7 @@ using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.SessionManagement;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Http.Features;
 using Serilog;
 using ISession = EventDrivenThinking.EventInference.SessionManagement.ISession;
 
@@ -48,6 +49,13 @@ namespace EventDrivenThinking.Integrations.Carter
                 await _proxy.SendEventCore(m, ev);
                 _logger.Information("SignalR hub is sending {eventName} on the session {sessionId}", ev.GetType().Name, Id);
             }
+
+            public Task SendEvents(Guid reqId, IEnumerable<EventEnvelope> events)
+            {
+                return _proxy.SendEvents(reqId, events);
+            }
+
+           
 
             public void Init(ISession session)
             {

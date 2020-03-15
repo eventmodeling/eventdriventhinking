@@ -1,23 +1,62 @@
 ﻿using System;
+using System.ComponentModel;
+using System.Linq;
+using System.Text;
+using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.EventStore;
+using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Example.Model.Hotel;
 using EventDrivenThinking.Example.Model.Projections;
 using EventDrivenThinking.Integrations.Unity;
+using EventDrivenThinking.Utils;
 using EventStore.ClientAPI;
+using EventStore.Common.Utils;
 using FluentAssertions;
+using Io.Cucumber.Messages;
+using Newtonsoft.Json;
 using Polly;
 using Serilog.Core;
 using Unity;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace EventDrivenThinking.Tests.Integration
 {
     
     public class EventStoreIntegrationTests
     {
+        private readonly ITestOutputHelper _testOutputHelper;
+
+        public EventStoreIntegrationTests(ITestOutputHelper testOutputHelper)
+        {
+            _testOutputHelper = testOutputHelper;
+        }
+
+        [Fact]
+        public async Task LinksCanBeCreated()
+        {
+            var connection = await Connect();
+
+            Guid eventData = Guid.NewGuid();
+            string streamName = $"foo-{Guid.NewGuid().ToString()}";
+            var eventObj = new RoomAdded() {Number = "101"};
+            var metadata = new EventMetadata(Guid.NewGuid(), typeof(HotelAggregate), Guid.NewGuid(), 0);
+            var result = await connection.AppendToStreamAsync(streamName, ExpectedVersion.Any,
+                new EventData(eventData, "roomAdded",true, eventObj.ToJsonBytes(), metadata.ToJsonBytes()));
+
+            var linkData = new EventData(eventData, "$>", false, Encoding.UTF8.GetBytes($"0@{streamName}"), null);
+            
+            var projectionStream = await connection.AppendToStreamAsync("projection", ExpectedVersion.Any, linkData);
+
+            var readProjection = await connection.ReadStreamEventsForwardAsync("projection",0, 20, true);
+            var data = readProjection.Events.Last().Event.Data.FromJsonBytes<RoomAdded>();
+
+            data.Should().BeEquivalentTo(eventObj);
+        }
+
         [Fact]
         public async Task AggregateShouldWorkWithEventStore()
         {

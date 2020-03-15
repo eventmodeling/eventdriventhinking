@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -6,34 +7,58 @@ using EventDrivenThinking.Utils;
 
 namespace EventDrivenThinking.Reflection
 {
-    
+
+
     public class MarkupOpenGenericFactory : MarkupFactoryBase
     {
-        
-        public MarkupOpenGenericFactory(Type baseSourceType, Type openGenericServiceType)
+        private static ConcurrentDictionary<string, MarkupOpenGenericFactory> _factories = new ConcurrentDictionary<string, MarkupOpenGenericFactory>();
+        public static MarkupOpenGenericFactory Create(Type baseSourceType, Type openGenericServiceType)
         {
-            var typeSignature = $"{baseSourceType.FullName}{openGenericServiceType.Name}.Marked";
-            
-            var tb = ModuleBuilder.DefineType(typeSignature,
-                TypeAttributes.Public |
-                TypeAttributes.Class |
-                TypeAttributes.AutoClass |
-                TypeAttributes.AnsiClass |
-                TypeAttributes.BeforeFieldInit |
-                TypeAttributes.AutoLayout,
-                baseSourceType);
+            var key = GetFullTypeName(baseSourceType, openGenericServiceType);
+            return _factories.GetOrAdd(key, (key) => new MarkupOpenGenericFactory(baseSourceType, openGenericServiceType));
+        }
 
-            var methods = openGenericServiceType.GetMethods();
+        private readonly Type _baseSourceType;
+        private readonly Type _openGenericServiceType;
+        public override string TypeFullName { get; }
+
+        private MarkupOpenGenericFactory(Type baseSourceType, Type openGenericServiceType)
+        {
+            _baseSourceType = baseSourceType;
+            _openGenericServiceType = openGenericServiceType;
+            TypeFullName = GetFullTypeName(baseSourceType, openGenericServiceType);
+        }
+
+        private static string GetFullTypeName(Type baseSourceType, Type openGenericServiceType)
+        {
+            return $"{baseSourceType.FullName}{openGenericServiceType.Name}_Marked";
+        }
+
+        protected override Type CreateMarkupType()
+        {
+            var tb = ModuleBuilder.DefineType(TypeFullName,
+                    TypeAttributes.Public |
+                    TypeAttributes.Class |
+                    TypeAttributes.AutoClass |
+                    TypeAttributes.AnsiClass |
+                    TypeAttributes.BeforeFieldInit |
+                    TypeAttributes.AutoLayout,
+                    _baseSourceType);
+
+            var methods = _openGenericServiceType.GetMethods();
             if (methods.Length > 1) throw new NotSupportedException("Only one method is supported for generic interface");
             var method = methods[0];
-            foreach (var m in baseSourceType.GetMethods())
+            var methodsToScan = _baseSourceType.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.NonPublic)
+                .Where(x=>x.DeclaringType != typeof(object))
+                .ToArray();
+            foreach (var m in methodsToScan)
             {
                 if (m.Name == method.Name)
                 {
-                    if(!m.IsVirtual)
-                        throw new InvalidOperationException($"Method '{m.Name}' of class '{baseSourceType.FullName}' must be virtual.");
+                    if (!m.IsVirtual)
+                        throw new InvalidOperationException($"Method '{m.Name}' of class '{_baseSourceType.FullName}' must be virtual.");
 
-                    var genericParameters = openGenericServiceType.GetGenericArguments();
+                    var genericParameters = _openGenericServiceType.GetGenericArguments();
                     Type[] genericArguments = new Type[genericParameters.Length];
                     // Name=T
                     if (method.ReturnType.IsGenericParameter)
@@ -81,7 +106,7 @@ namespace EventDrivenThinking.Reflection
                     }
                     if (genericArguments.All(x => x != null))
                     {
-                        var makeGenericType = openGenericServiceType.MakeGenericType(genericArguments);
+                        var makeGenericType = _openGenericServiceType.MakeGenericType(genericArguments);
                         _services.Add(makeGenericType);
                         tb.AddInterfaceImplementation(makeGenericType);
                     }
@@ -90,18 +115,18 @@ namespace EventDrivenThinking.Reflection
 
             try
             {
-                _markupType = tb.CreateType();
+                return tb.CreateType();
             }
             catch (TypeLoadException ex)
             {
-                if (!baseSourceType.IsPublic)
-                    throw new InvalidOperationException($"Please add [assembly:InternalsVisibleTo(\"DynamicMarkupAssembly\")] to '{baseSourceType.Assembly}'",ex);
-                if (!openGenericServiceType.IsPublic)
-                    throw new InvalidOperationException($"Please add [assembly:InternalsVisibleTo(\"DynamicMarkupAssembly\")] to '{openGenericServiceType.Assembly}'",ex);
-
+                if (!_baseSourceType.IsPublic)
+                    throw new InvalidOperationException($"Please add [assembly:InternalsVisibleTo(\"DynamicMarkupAssembly\")] to '{_baseSourceType.Assembly}'", ex);
+                if (!_openGenericServiceType.IsPublic)
+                    throw new InvalidOperationException($"Please add [assembly:InternalsVisibleTo(\"DynamicMarkupAssembly\")] to '{_openGenericServiceType.Assembly}'", ex);
+                throw;
             }
         }
 
-        
+
     }
 }

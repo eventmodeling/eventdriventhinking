@@ -74,15 +74,15 @@ namespace EventDrivenThinking.Ui.Schema
         /// If event's is from assemblies not listed here, it means that it comes from server.
         /// </summary>
         /// <param name="assembly"></param>
-        public void Discover(params Assembly[] assembly)
+        public void Discover(IEnumerable<Type> types)
         {
-            var appTypes= assembly.SelectMany(x => x.GetTypes())
+            var appTypes= types
                 .Where(x => typeof(IAppProcess).IsAssignableFrom(x) && !x.IsAbstract)
                 .ToArray();
 
             foreach (var appType in appTypes)
             {
-                AppProcessSchema item = Discover(appType, assembly);
+                AppProcessSchema item = Discover(appType, types.Select(x=>x.Assembly).Distinct().ToArray());
                 _items.Add(item);
             }
         }

@@ -59,40 +59,38 @@ namespace EventDrivenThinking.EventInference.Schema
             return _modelIndex[modelType];
         }
 
-        public void Discover(params Assembly[] assemblies)
+        public void Discover(IEnumerable<Type> types)
         {
-            foreach (var a in assemblies)
+            var projectionTypes = types
+                .Where(t => typeof(IProjection).IsAssignableFrom(t) && !t.IsAbstract)
+                .ToArray();
+
+            foreach (var type in projectionTypes)
             {
-                var projectionTypes = a.GetTypes()
-                    .Where(t => typeof(IProjection).IsAssignableFrom(t) && !t.IsAbstract)
-                    .ToArray();
+                ProjectionSchema m = new ProjectionSchema(type, ServiceConventions.GetCategoryFromNamespace(type.Namespace));
 
-                foreach (var type in projectionTypes)
+                var specificProjectionType = type.GetInterface(nameof(IProjection) + "`1");
+                if (specificProjectionType != null)
                 {
-                    ProjectionSchema m = new ProjectionSchema(type, ServiceConventions.GetCategoryFromNamespace(type.Namespace));
-                    
-                    var specificProjectionType = type.GetInterface(nameof(IProjection)+"`1");
-                    if (specificProjectionType != null)
-                    {
-                        m.ModelType = specificProjectionType.GetGenericArguments()[0];
-                        _modelIndex.Add(m.ModelType, m);
-                    }
-
-                    _metadata.Add(m);
-                    
-                    foreach (var givenMethods in GetGivenMethods(type))
-                    {
-                        var eventType = givenMethods.GetParameters()[2].ParameterType;
-                        _event2ProjectionType.TryAdd(eventType, m);
-                        m.AddEventType(eventType);
-                    }
+                    m.ModelType = specificProjectionType.GetGenericArguments()[0];
+                    _modelIndex.Add(m.ModelType, m);
                 }
 
-                Events = _event2ProjectionType.Keys.ToArray();
+                _metadata.Add(m);
+
+                foreach (var givenMethods in GetGivenMethods(type))
+                {
+                    var eventType = givenMethods.GetParameters()[2].ParameterType;
+                    _event2ProjectionType.TryAdd(eventType, m);
+                    m.AddEventType(eventType);
+                }
             }
+
+            Events = _event2ProjectionType.Keys.ToArray();
+
         }
 
-        
+
 
         public Type[] Events { get; private set; }
 

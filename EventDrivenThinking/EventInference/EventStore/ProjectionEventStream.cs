@@ -16,10 +16,13 @@ namespace EventDrivenThinking.EventInference.EventStore
         where TProjection : IProjection
     {
         string GetPartitionStreamName(Guid key);
+        IAsyncEnumerable<EventEnvelope> Get(Guid key);
+        IAsyncEnumerable<EventEnvelope> Get();
         Task Append(EventMetadata m, IEvent e);
         Task AppendPartition(Guid key, EventMetadata m, IEvent e);
     }
 
+    
     public class ProjectionEventStream<TProjection> : IProjectionEventStream<TProjection>
         where TProjection : IProjection
     {
@@ -27,7 +30,7 @@ namespace EventDrivenThinking.EventInference.EventStore
         private readonly IEventDataFactory _eventDataFactory;
         private readonly ILogger _logger;
         private readonly string _category;
-        
+        private static readonly Guid _projectionId = typeof(TProjection).ComputeSourceHash();
         public ProjectionEventStream(IEventStoreConnection connection, IEventDataFactory eventDataFactory, ILogger logger)
         {
             _connection = connection;
@@ -41,18 +44,30 @@ namespace EventDrivenThinking.EventInference.EventStore
         {
            return $"{_category}ProjectionPartition-{key}";
         }
+
+        public IAsyncEnumerable<EventEnvelope> Get(Guid key)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IAsyncEnumerable<EventEnvelope> Get()
+        {
+            throw new NotImplementedException();
+        }
+
         public async Task Append(EventMetadata m, IEvent e)
         {
             string aggregateType = m.AggregateType.Name;
-            var data = _eventDataFactory.Create(m.AsLink(),e, ev => $"{ev.Name}@{aggregateType}");
+            
+            var data = _eventDataFactory.CreateLink(m,e,typeof(TProjection), _projectionId);
+            
             await _connection.AppendToStreamAsync(_category, ExpectedVersion.Any, data);
         }
         public async Task AppendPartition(Guid key, EventMetadata m, IEvent e)
         {
             var streamName = GetPartitionStreamName(key);
-            string aggregateType = m.AggregateType.Name;
-
-            var data = _eventDataFactory.Create(m.AsLink(), e, ev => $"@{ev.Name}@{aggregateType}");
+            
+            var data = _eventDataFactory.CreateLink(m, e, typeof(TProjection), _projectionId);
             await _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, data);
         }
     }

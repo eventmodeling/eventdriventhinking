@@ -9,6 +9,7 @@ namespace EventDrivenThinking.EventInference.EventStore
     {
         EventData Create(EventMetadata em, IEvent ev, Func<Type, string> evName);
         EventData Create(EventMetadata em, IEvent ev);
+        EventData CreateLink(EventMetadata em, IEvent ev, Type projectionType, Guid projectionVersion);
         EventData Create(EventEnvelope ev);
     }
 }

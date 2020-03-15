@@ -5,7 +5,6 @@ using System.IO;
 using Carter;
 using Carter.Request;
 using Carter.Response;
-using EventDrivenThinking.App.Configuration.Server;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Write;
 using EventDrivenThinking.EventInference.CommandHandlers;

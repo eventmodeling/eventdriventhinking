@@ -8,7 +8,7 @@ using EventDrivenThinking.EventInference.Models;
 namespace EventDrivenThinking.EventInference.Schema
 {
 
-    public interface IQuerySchemaRegister
+    public interface IQuerySchemaRegister : ISchemaRegister<IQuerySchema>
     {
         IQuerySchema GetByEventType(Type eventType);
     }
@@ -17,16 +17,20 @@ namespace EventDrivenThinking.EventInference.Schema
     {
         Guid CalculatePartition(IModel model, TQuery query);
     }
-    public interface IProjectionPartitioner<in TProjection>
+
+    public interface IProjectionStreamPartitioner<in TProjection> where TProjection:IProjection
     {
-        Guid CalculatePartition(IModel model, EventMetadata m, IEvent ev);
+        Guid[] CalculatePartitions(IModel model, EventMetadata m, IEvent ev);
     }
 
-    public interface IQuerySchema
+
+    public interface IQuerySchema : ISchema
     {
-        public Type QueryType { get; set; }
-        public Type ModelType { get; set; }
-        public Type ProjectionType { get; set; }
+        public Type ModelType { get; }
+        public Type ProjectionType { get; }
+        public Type[] Partitioners { get; }
+        public Type ResultType { get; }
+        public Type QueryHandlerType { get; }
     }
 
     public interface IProjectionSchemaRegister : ISchemaRegister<IProjectionSchema>
@@ -47,7 +51,6 @@ namespace EventDrivenThinking.EventInference.Schema
     public interface IProcessorSchema : ISchema
     {
         IEnumerable<Type> Events { get; }
-        Type Type { get; }
     }
 
     public interface IProjectionSchema<TProjection> : IProjectionSchema
@@ -57,7 +60,6 @@ namespace EventDrivenThinking.EventInference.Schema
     public interface IProjectionSchema : ISchema
     {
         IEnumerable<Type> Events { get; }
-        Type Type { get; }
         Type ModelType { get; }
     }
 }

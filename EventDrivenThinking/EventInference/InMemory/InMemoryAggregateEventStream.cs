@@ -43,8 +43,9 @@ namespace EventDrivenThinking.EventInference.InMemory
         public async Task<EventEnvelope[]> Append(Guid key, long version, Guid correlationId, IEnumerable<IEvent> published)
         {
             var list = _streams.GetOrAdd(key, k => new List<EventEnvelope>());
+            int i = 0;
             var result = published.Select(e =>
-                new EventEnvelope(e, _metadataFactory.Create(key,correlationId,e)))
+                new EventEnvelope(e, _metadataFactory.Create(key,correlationId,e, version+i++)))
                 .ToArray();
 
             lock (list)

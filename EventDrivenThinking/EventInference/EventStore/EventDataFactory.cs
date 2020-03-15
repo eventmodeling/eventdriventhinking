@@ -2,6 +2,7 @@
 using System.Text;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
+using EventDrivenThinking.EventInference.Schema;
 using EventStore.ClientAPI;
 using Newtonsoft.Json;
 
@@ -9,13 +10,13 @@ namespace EventDrivenThinking.EventInference.EventStore
 {
     public interface IEventMetadataFactory<TAggregate>
     {
-        EventMetadata Create(Guid key, Guid correlationId, IEvent ev);
+        EventMetadata Create(Guid key, Guid correlationId, IEvent ev, long version);
     }
     public sealed class EventMetadataFactory<TAggregate> : IEventMetadataFactory<TAggregate>
     {
-        public EventMetadata Create(Guid key, Guid correlationId, IEvent ev)
+        public EventMetadata Create(Guid key, Guid correlationId, IEvent ev, long version)
         {
-            var em = new EventMetadata(key, typeof(TAggregate), correlationId);
+            var em = new EventMetadata(key, typeof(TAggregate), correlationId, version);
             return em;
         }
     }
@@ -29,12 +30,26 @@ namespace EventDrivenThinking.EventInference.EventStore
             var strMeta = JsonConvert.SerializeObject(em);
             var evMeta = Encoding.UTF8.GetBytes(strMeta);
 
+            
             var evTypeName = evName(ev.GetType());
             return new EventData(ev.Id, evTypeName, true, evData, evMeta);
         }
         public EventData Create(EventMetadata em, IEvent ev)
         {
             return Create(em, ev, ev => ev.Name);
+        }
+
+        public EventData CreateLink(EventMetadata em, IEvent ev, Type projectionType, Guid projectionVersion)
+        {
+            var category = ServiceConventions.GetCategoryFromNamespaceFunc(em.AggregateType.Namespace);
+            var content = $"{em.Version}@{category}-{em.AggregateId}";
+
+            var metadata = new LinkMetadata(projectionType, em.CorrelationId, projectionVersion);
+
+            var contentBytes = Encoding.UTF8.GetBytes(content);
+            var metadataBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metadata));
+
+            return new EventData(Guid.NewGuid(), "$>", false, contentBytes, metadataBytes);
         }
 
         public EventData Create(EventEnvelope ev)

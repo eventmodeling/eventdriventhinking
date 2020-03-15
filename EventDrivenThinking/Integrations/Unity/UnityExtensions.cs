@@ -2,7 +2,6 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using EventDrivenThinking.App.Configuration.Server;
 using Microsoft.Extensions.DependencyInjection;
 using Unity;
 using Unity.Lifetime;

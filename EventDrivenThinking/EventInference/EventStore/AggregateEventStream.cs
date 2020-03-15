@@ -63,19 +63,23 @@ namespace EventDrivenThinking.EventInference.EventStore
         public async Task<EventEnvelope[]> Append(Guid key, long version, Guid correlationId, IEnumerable<IEvent> published)
         {
             var streamName = GetStreamName(key);
-            var data = published.Select(x =>new EventEnvelope(x, _metadataFactory.Create(key, correlationId,x)))
-                .ToArray();
+            var publishedArray = published as IEvent[] ?? published.ToArray();
+            EventEnvelope[] data = new EventEnvelope[publishedArray.Length];
 
+            for (int i = 0; i < publishedArray.Length; i++)
+            {
+                var ev = publishedArray[i];
+                data[i] = new EventEnvelope(ev, _metadataFactory.Create(key, correlationId, ev, version + i));
+            }
             
             using (var tran = await _connection.StartTransactionAsync(streamName, version))
             {
-                
                 var evData = data.Select(_eventDataFactory.Create);
                 
                 await tran.WriteAsync(evData);
                 await tran.CommitAsync();
             }
-            _logger.Information("Writing event to stream {streamName} {eventNames}", streamName, published.Select(x => x.GetType().Name).ToArray());
+            _logger.Information("Writing event to stream {streamName} {eventNames}", streamName, publishedArray.Select(x => x.GetType().Name).ToArray());
             return data;
         }
 

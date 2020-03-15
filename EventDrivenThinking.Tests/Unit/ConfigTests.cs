@@ -1,6 +1,6 @@
 ﻿using System;
-using EventDrivenThinking.App.Configuration.Fresh;
-using EventDrivenThinking.App.Configuration.Fresh.Http;
+using EventDrivenThinking.App.Configuration;
+using EventDrivenThinking.App.Configuration.Http;
 using EventDrivenThinking.Integrations.Unity;
 using Microsoft.Extensions.DependencyInjection;
 using Serilog.Core;

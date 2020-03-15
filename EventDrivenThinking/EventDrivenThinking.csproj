@@ -25,8 +25,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="App\Configuration\Fresh\BuildIn\" />
+    <Folder Include="Integrations\EventAggregator\Client\" />
     <Folder Include="Integrations\EventAggregator\Server\" />
+    <Folder Include="Integrations\Unity\Client\" />
     <Folder Include="Integrations\Unity\Server\" />
     <Folder Include="Ui\Abstractions\" />
   </ItemGroup>

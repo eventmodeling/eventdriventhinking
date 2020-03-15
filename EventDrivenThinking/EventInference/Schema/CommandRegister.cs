@@ -49,10 +49,8 @@ namespace EventDrivenThinking.EventInference.Schema
             get { return _types ??= _commands.Select(x=>x.Type).ToArray(); }
         }
 
-        public void Discover(params Assembly[] assembly)
+        public void Discover(IEnumerable<Type> types)
         {
-            var types = assembly.SelectMany(x => x.GetTypes())
-                .ToArray();
 
             foreach (var commandType in types.Where(x => typeof(ICommand).IsAssignableFrom(x) && !x.IsAbstract))
             {
