@@ -26,7 +26,7 @@ Business logic is divided through namespaces. Each namespace should contain one 
 --> [optional] if persisted => while we execute projection we need to persist the order, though for instance Links in EventStore.
 
 ### Processors
-1) They are used to transfer work between aggregates. 
+1) They can be used to transfer work between aggregates. 
 2) They show the right complexity of business operations that work in the background. For example: 
 * I want to invoke an aggregate but I don't have enough information. Then I create a processor that shows how hard it is to aggregate information from others to build the right command for an aggregate. Then the flow would consist of 2 stages: First, a projection is executed, then the model is injected into the processor and that one issue commands.
 * I want to invoke many aggregates after a fact - many departments are working because of something. 
