@@ -23,14 +23,16 @@ Business logic is divided through namespaces. Each namespace should contain one 
 2) They can be reset/recreated - this is: we can delete the specific model and rebuild it from events. <br/>
 --> this implicates that the order of event that projection is executing is persisted or calculated. <br/>
 --> [must have] if calculated => we perform join operation on streams (in the past). <br/>
---> [optional] if persisted => while we execute projection we need to persist the order. 
+--> [optional] if persisted => while we execute projection we need to persist the order, though for instance Links in EventStore.
 
 ### Processors
-1) They are used to transfer work between aggregates. 
+1) They can be used to transfer work between aggregates. 
 2) They show the right complexity of business operations that work in the background. For example: 
 * I want to invoke an aggregate but I don't have enough information. Then I create a processor that shows how hard it is to aggregate information from others to build the right command for an aggregate. Then the flow would consist of 2 stages: First, a projection is executed, then the model is injected into the processor and that one issue commands.
 * I want to invoke many aggregates after a fact - many departments are working because of something. 
 * They should be invoked by infrastructure. They **[FUTURE]** can define declaratively a delay when the handler is executed after an event.
+3) The infrastructure needs to ensure that commands get delivered to an aggregates
+4) And if an exception is thrown, than the processors is notifed.
 
 ## App Level responsibilities:
 ### Command Handler
@@ -49,6 +51,7 @@ Business logic is divided through namespaces. Each namespace should contain one 
 1) Handles querying.
 2) The query is against a model that is used in a projection.
 3) Querying should return a result (state) from query-handler and the **live subscription** for model-changes. 
+4) To support live querying - projection's stream need to be partitioned according to predicate used in a query. This way client can subscribe for changes that are only relevant to his/her query. PartitionProjections need to save Link in EventStore.
 
 ## Configuration Level Responsibilities:
 1) Should decide on means of communication: REST/SignalR/SOAP/etc.
