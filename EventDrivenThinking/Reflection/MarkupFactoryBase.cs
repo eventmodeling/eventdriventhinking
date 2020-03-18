@@ -28,7 +28,19 @@ namespace EventDrivenThinking.Reflection
 
         public Type MarkupType => _markupType.Value;
 
-        public IEnumerable<Type> Services => _services;
+        public IEnumerable<Type> Services
+        {
+            get
+            {
+                if (!_markupType.IsValueCreated)
+                {
+                    // bad design:
+                    // we need to invoke CreateMarkupType method so that to _services are populated.
+                    _markupType.Value.ToString();
+                }
+                return _services;
+            }
+        }
 
         protected ModuleBuilder ModuleBuilder
         {

@@ -61,5 +61,7 @@ namespace EventDrivenThinking.EventInference.Schema
     {
         IEnumerable<Type> Events { get; }
         Type ModelType { get; }
+        Type EventByName(string eventEventType);
+        IEnumerable<Type> Partitioners { get; }
     }
 }

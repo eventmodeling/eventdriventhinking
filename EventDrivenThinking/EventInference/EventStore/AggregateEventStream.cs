@@ -69,7 +69,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             for (int i = 0; i < publishedArray.Length; i++)
             {
                 var ev = publishedArray[i];
-                data[i] = new EventEnvelope(ev, _metadataFactory.Create(key, correlationId, ev, version + i));
+                data[i] = new EventEnvelope(ev, _metadataFactory.Create(key, correlationId, ev, version + i + 1));
             }
             
             using (var tran = await _connection.StartTransactionAsync(streamName, version))

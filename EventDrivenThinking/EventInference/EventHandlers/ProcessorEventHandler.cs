@@ -30,7 +30,11 @@ namespace EventDrivenThinking.EventInference.EventHandlers
             // An exception should be handled TProcessor, by another method such as HandleError. 
             // We want TProcessor to be divided into 2: part where commands are prepared
             // from how errors are handled.
-            _logger.Information("{processorName} received from {aggregateId} an {eventName} {eventId}", typeof(TProcessor).Name, m.AggregateId, typeof(TEvent).Name, ev.Id);
+            _logger.Information("{processorName} received from {aggregateId} an {eventName} {eventId}", 
+                typeof(TProcessor).Name, 
+                m.AggregateId, 
+                typeof(TEvent).Name, 
+                ev.Id);
 
             var commands = await _processor.When(m, ev);
             Task[] tasks = new Task[commands.Length];

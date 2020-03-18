@@ -11,6 +11,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Integrations\EventAggregator\Server\**" />
+    <Compile Remove="Integrations\Unity\Server\**" />
+    <EmbeddedResource Remove="Integrations\EventAggregator\Server\**" />
+    <EmbeddedResource Remove="Integrations\Unity\Server\**" />
+    <None Remove="Integrations\EventAggregator\Server\**" />
+    <None Remove="Integrations\Unity\Server\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Carter" Version="5.0.0" />
     <PackageReference Include="EventStore.Client" Version="5.0.6" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Client" Version="3.1.2" />
@@ -25,10 +34,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Integrations\EventAggregator\Client\" />
-    <Folder Include="Integrations\EventAggregator\Server\" />
-    <Folder Include="Integrations\Unity\Client\" />
-    <Folder Include="Integrations\Unity\Server\" />
     <Folder Include="Ui\Abstractions\" />
   </ItemGroup>
 

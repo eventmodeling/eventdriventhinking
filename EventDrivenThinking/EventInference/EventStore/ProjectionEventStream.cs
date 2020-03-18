@@ -2,12 +2,14 @@
 using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
 using EventStore.ClientAPI;
+using Newtonsoft.Json;
 using ILogger = Serilog.ILogger;
 
 namespace EventDrivenThinking.EventInference.EventStore
@@ -31,28 +33,57 @@ namespace EventDrivenThinking.EventInference.EventStore
         private readonly ILogger _logger;
         private readonly string _category;
         private static readonly Guid _projectionId = typeof(TProjection).ComputeSourceHash();
-        public ProjectionEventStream(IEventStoreConnection connection, IEventDataFactory eventDataFactory, ILogger logger)
+        private IProjectionSchema<TProjection> _projectionSchema;
+        public ProjectionEventStream(IEventStoreConnection connection, IEventDataFactory eventDataFactory, ILogger logger, IProjectionSchema<TProjection> projectionSchema)
         {
             _connection = connection;
             _eventDataFactory = eventDataFactory;
             _logger = logger;
+            _projectionSchema = projectionSchema;
             _category =
                 $"{ServiceConventions.GetCategoryFromNamespace(typeof(TProjection).Namespace)}Projection";
         }
 
         public string GetPartitionStreamName(Guid key)
         {
-           return $"{_category}ProjectionPartition-{key}";
+           return $"{_category}Partition-{key}";
         }
 
-        public IAsyncEnumerable<EventEnvelope> Get(Guid key)
+        public async IAsyncEnumerable<EventEnvelope> Get(Guid key)
         {
-            throw new NotImplementedException();
+            StreamEventsSlice slice = null;
+            do
+            {
+                slice = await _connection.ReadStreamEventsForwardAsync(GetPartitionStreamName(key), StreamPosition.Start, 100, true);
+                foreach (var e in slice.Events)
+                {
+                    var eventString = Encoding.UTF8.GetString(e.Event.Data);
+                    var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
+                    var eventType = _projectionSchema.EventByName(e.Event.EventType);
+                    var eventInstance = (IEvent)JsonConvert.DeserializeObject(eventString, eventType);
+                    yield return new EventEnvelope(eventInstance, em);
+                }
+
+            } while (!slice.IsEndOfStream);
         }
 
-        public IAsyncEnumerable<EventEnvelope> Get()
+        public async IAsyncEnumerable<EventEnvelope> Get()
         {
-            throw new NotImplementedException();
+            StreamEventsSlice slice = null;
+            do
+            {
+                slice = await _connection.ReadStreamEventsForwardAsync(_category, StreamPosition.Start, 100, true);
+                foreach (var e in slice.Events)
+                {
+                    var eventString = Encoding.UTF8.GetString(e.Event.Data);
+                    var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
+                    var eventType = _projectionSchema.EventByName(e.Event.EventType);
+                    var eventInstance = (IEvent)JsonConvert.DeserializeObject(eventString, eventType);
+                    yield return new EventEnvelope(eventInstance, em);
+                }
+
+            } while (!slice.IsEndOfStream);
+
         }
 
         public async Task Append(EventMetadata m, IEvent e)

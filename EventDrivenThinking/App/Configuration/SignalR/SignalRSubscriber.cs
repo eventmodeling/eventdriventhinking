@@ -9,11 +9,20 @@ using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.Reflection;
 using EventDrivenThinking.Ui;
+using EventStore.ClientAPI;
 using Microsoft.AspNetCore.SignalR.Client;
-using Serilog;
+using ILogger = Serilog.ILogger;
+using StreamPosition = EventDrivenThinking.Integrations.SignalR.StreamPosition;
 
 namespace EventDrivenThinking.App.Configuration.SignalR
 {
+    public static class HubConnectionExtensions
+    {
+        public static Task SubscribeToProjection(this HubConnection connection, Guid requestId, long position, string categoryName)
+        {
+            return connection.InvokeAsync("SubscribeToProjection", requestId, position, categoryName);
+        }
+    }
     public class SignalRSubscriber
     {
         public SignalRSubscriber(IUiEventBus dispatcher, IClientSession session, ILogger logger)
@@ -35,12 +44,19 @@ namespace EventDrivenThinking.App.Configuration.SignalR
 
             foreach (var e in eventTypes.Where(x => !_subscribedEvents.Contains(x)))
             {
-                _subscribedEvents.Add(e);
+                if (!_subscribedEvents.Contains(e))
+                {
+                    _subscribedEvents.Add(e);
+                } else Debug.WriteLine($"Already subscribed for event-type: {e.Name}");
+
                 var configuratorType = typeof(ProjectionTypeStreamConfigurator<>).MakeGenericType(e);
                 var configurator = Ctor<IEventProjectionHandlerConfigurator>.Create(configuratorType);
                 await configurator.Configure(startFromBeginning, connection, _dispatcher, _logger, projectionName);
             }
-            await connection.InvokeAsync("SubscribeToProjection", startFromBeginning, projectionName);
+            if(startFromBeginning)
+                await connection.SubscribeToProjection(Guid.NewGuid(), StreamPosition.Beginning, projectionName);
+            else
+                await connection.SubscribeToProjection(Guid.NewGuid(), StreamPosition.Live, projectionName);
         }
 
         public async Task SubscribeFromEventStream(HubConnection connection, bool isPersistent, IEnumerable<Type> eventTypes)

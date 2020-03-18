@@ -19,6 +19,12 @@ namespace EventDrivenThinking.EventInference.Schema
         public Type Type => _schema.Type;
 
         public Type ModelType => _schema.ModelType;
+        public Type EventByName(string eventEventType)
+        {
+            return _schema.EventByName(eventEventType);
+        }
+
+        public IEnumerable<Type> Partitioners => _schema.Partitioners;
 
         public ProjectionSchema(IProjectionSchema schema)
         {

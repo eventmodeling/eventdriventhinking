@@ -24,13 +24,20 @@ namespace EventDrivenThinking.EventInference.Schema
             }
             public void AddEventType(Type eventType) { _events.Add(eventType);}
             
-            public ProjectionSchema(Type projectionType, string category)
+            public ProjectionSchema(Type projectionType, string category, params Type[] partitioners)
             {
                 Type = projectionType;
                 Category = category;
                 _events = new List<Type>();
                 _tags = new Lazy<HashSet<string>>(() => new HashSet<string>(Type.FullName.Split('.')));
+                Partitioners = partitioners;
             }
+            public Type EventByName(string eventEventType)
+            {
+                return Events.FirstOrDefault(x => x.Name == eventEventType || x.FullName == eventEventType);
+            }
+
+            public IEnumerable<Type> Partitioners { get; }
 
             private readonly Lazy<HashSet<string>> _tags;
             public IEnumerable<string> Tags => _tags.Value;
@@ -67,7 +74,10 @@ namespace EventDrivenThinking.EventInference.Schema
 
             foreach (var type in projectionTypes)
             {
-                ProjectionSchema m = new ProjectionSchema(type, ServiceConventions.GetCategoryFromNamespace(type.Namespace));
+                var projectionPartitionerType = typeof(IProjectionStreamPartitioner<>).MakeGenericType(type);
+                var partitionerTypes = types.Where(x => projectionPartitionerType.IsAssignableFrom(x) && !x.IsAbstract)
+                    .ToArray();
+                ProjectionSchema m = new ProjectionSchema(type, ServiceConventions.GetCategoryFromNamespace(type.Namespace), partitionerTypes);
 
                 var specificProjectionType = type.GetInterface(nameof(IProjection) + "`1");
                 if (specificProjectionType != null)

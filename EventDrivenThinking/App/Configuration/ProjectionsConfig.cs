@@ -28,6 +28,9 @@ namespace EventDrivenThinking.App.Configuration
                 collection.AddSingleton(typeof(IProjectionSchema<>).MakeGenericType(p.Type),
                     Activator.CreateInstance(typeof(ProjectionSchema<>).MakeGenericType(p.Type), p));
 
+                foreach (var pp in p.Partitioners)
+                    collection.AddSingleton(typeof(IProjectionStreamPartitioner<>).MakeGenericType(p.Type), pp);
+
                 if(!_noHandlers)
                 foreach (var et in p.Events)
                 {

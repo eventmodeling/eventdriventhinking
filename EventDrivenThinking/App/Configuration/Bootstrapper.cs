@@ -53,6 +53,7 @@ namespace EventDrivenThinking.App.Configuration
             _collection.TryAddSingleton(sp => _config.Services.ProjectionSchemaRegister);
             _collection.TryAddSingleton(sp => _config.Services.ProcessorSchemaRegister);
             _collection.TryAddSingleton(sp => _config.Services.CommandInvocationRegister);
+            _collection.TryAddSingleton(sp => _config.Services.QuerySchemaRegister);
 
             _collection.TryAddSingleton<ICommandDispatcher, CommandDispatcher>();
             _collection.TryAddSingleton<IEventHandlerDispatcher, EventHandlerDispatcher>();

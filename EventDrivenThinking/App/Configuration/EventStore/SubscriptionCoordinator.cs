@@ -46,7 +46,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         {
             _connection = connection;
             _lastCheckpoint = await _checkpointRepo.GetLastCheckpoint();
-            Debug.WriteLine($"Subscribing from {_lastCheckpoint ?? -1}");
+            Debug.WriteLine($"Subscribing steam: {_streamName} from {_lastCheckpoint?.ToString() ?? "beginning"}");
             this.Subscription = _connection.SubscribeToStreamFrom(_streamName,
                 _lastCheckpoint,
                 _settings,
@@ -60,11 +60,13 @@ namespace EventDrivenThinking.App.Configuration.EventStore
             Debug.WriteLine($"Subscription was dropped {_streamName} (reason = {arg2}, Exception = {arg3}), reconnecting.");
             _reconnectionCounter += 1;
             
-            this.Subscription = _connection.SubscribeToStreamFrom(_streamName,
-                _lastCheckpoint,
-                _settings,
-                OnEventAppeared,
-                OnLiveProcessingStarted, OnSubscriptionDropped);
+
+            //this.Subscription = _connection.SubscribeToStreamFrom(_streamName,
+            //    _lastCheckpoint,
+            //    _settings,
+            //    OnEventAppeared,
+            //    OnLiveProcessingStarted, OnSubscriptionDropped);
+            
             
         }
 

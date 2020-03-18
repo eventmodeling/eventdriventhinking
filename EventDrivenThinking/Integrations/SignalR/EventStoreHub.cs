@@ -18,10 +18,10 @@ using ILogger = Serilog.ILogger;
 
 namespace EventDrivenThinking.Integrations.SignalR
 {
-    public enum StreamPosition : long
+    public class StreamPosition
     {
-        Beginning = -1,
-        Live = -2
+        public const long Beginning = -1;
+        public const long Live = -2;
     }
 
     public class StreamNotFoundException : Exception
@@ -175,7 +175,7 @@ namespace EventDrivenThinking.Integrations.SignalR
             // we need to use the subscriptionId to transfer old events.
             // and than add to appropriate group 
         }
-        public async Task SubscribeToEvent(Guid requestId, bool isPersistent, string eventName)
+        public async Task SubscribeToEvent(bool isPersistent, string eventName)
         {
             var sessionId = _register[this.Context.ConnectionId];
             var session = _sessionManager[sessionId];
