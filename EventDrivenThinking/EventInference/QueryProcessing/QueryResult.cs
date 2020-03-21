@@ -9,17 +9,16 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
         where TQuery : IQuery<TModel, TResult>
     {
         private readonly TModel _model;
-        private readonly IQueryEngine<TModel> _engine;
+        
         private readonly TQuery _query;
         private readonly QueryOptions _options;
 
         public QueryResult(TModel model,
-            IQueryEngine<TModel> engine,
             TQuery query,
             QueryOptions options)
         {
             _model = model;
-            _engine = engine;
+        
 
             _query = query;
             _options = options;
@@ -31,6 +30,9 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
         }
 
         public TResult Result { get; set; }
+        object IQueryResult.Model => Model;
+
+        object IQueryResult.Result => Result;
         public TModel Model => _model;
         private EventHandler _completed;
         public event EventHandler Completed

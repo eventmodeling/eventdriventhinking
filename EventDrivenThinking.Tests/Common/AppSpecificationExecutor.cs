@@ -10,10 +10,12 @@ using System.Threading.Tasks;
 using Docker.DotNet;
 using Docker.DotNet.Models;
 using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Abstractions.Write;
 using EventDrivenThinking.EventInference.Client;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
+using EventDrivenThinking.EventInference.QueryProcessing;
 using EventDrivenThinking.EventInference.Schema;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.Common.Log;
@@ -152,9 +154,21 @@ namespace EventDrivenThinking.Tests.Common
             return _aggregateSchemaRegister;
         }
 
-        public void Init(IAggregateSchemaRegister aggregateSchemaRegister)
+        
+
+        public ISpecificationExecutor Init(IProjectionSchemaRegister projectionSchemaRegister)
         {
-            
+            return this;
+        }
+
+        public ISpecificationExecutor Init(IQuerySchemaRegister querySchemaRegister)
+        {
+            return this;
+        }
+
+        public ISpecificationExecutor Init(IAggregateSchemaRegister aggregateSchemaRegister)
+        {
+            return this;
         }
 
         public async IAsyncEnumerable<(Guid, IEvent)> GetEmittedEvents()
@@ -218,6 +232,23 @@ namespace EventDrivenThinking.Tests.Common
                 .Invoke(this, new object[] {aggregateId, ev});
             
         }
+
+        public Task<IQueryResult> ExecuteQuery(IQuery query)
+        {
+            throw new NotImplementedException();
+        }
+
+        public IEnumerable<IQueryResult> GetQueryResults()
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task<TResult> ExecuteQuery<TQuery, TResult, TModel>(TQuery query) where TQuery : IQuery<TModel, TResult> where TModel : IModel
+        {
+            throw new NotImplementedException();
+        }
+
+       
 
         private IEventStoreConnection _connection;
         private async Task<IEventStoreConnection> GetEventStoreConnection()

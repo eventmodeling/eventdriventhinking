@@ -83,13 +83,10 @@ namespace EventDrivenThinking.Tests.Integration
         [Xunit.SkippableFactAttribute(DisplayName="I want to execute simple command against an aggregate")]
         [Xunit.TraitAttribute("FeatureTitle", "EventDrivenFeatures")]
         [Xunit.TraitAttribute("Description", "I want to execute simple command against an aggregate")]
-        [Xunit.TraitAttribute("Category", "app")]
         public virtual void IWantToExecuteSimpleCommandAgainstAnAggregate()
         {
-            string[] tagsOfScenario = new string[] {
-                    "app"};
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("I want to execute simple command against an aggregate", null, new string[] {
-                        "app"});
+            string[] tagsOfScenario = ((string[])(null));
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("I want to execute simple command against an aggregate", null, ((string[])(null)));
 #line 5
 this.ScenarioInitialize(scenarioInfo);
 #line hidden
@@ -120,11 +117,8 @@ this.ScenarioInitialize(scenarioInfo);
  testRunner.Given("The fact: Room was added:", ((string)(null)), table1, "Given ");
 #line hidden
                 TechTalk.SpecFlow.Table table2 = new TechTalk.SpecFlow.Table(new string[] {
-                            "Property",
+                            "Parameter",
                             "Value"});
-                table2.AddRow(new string[] {
-                            "Number",
-                            "101"});
                 table2.AddRow(new string[] {
                             "Start",
                             "2020-03-03"});
@@ -132,22 +126,61 @@ this.ScenarioInitialize(scenarioInfo);
                             "End",
                             "2020-03-04"});
 #line 11
- testRunner.When("I book a room:", ((string)(null)), table2, "When ");
+ testRunner.When("I query for availability of a room:", ((string)(null)), table2, "When ");
 #line hidden
                 TechTalk.SpecFlow.Table table3 = new TechTalk.SpecFlow.Table(new string[] {
                             "Property",
                             "Value"});
                 table3.AddRow(new string[] {
+                            "AvailableRooms",
+                            "[\"101\"]"});
+                table3.AddRow(new string[] {
+                            "Found",
+                            "true"});
+#line 16
+ testRunner.Then("I get query results:", ((string)(null)), table3, "Then ");
+#line hidden
+                TechTalk.SpecFlow.Table table4 = new TechTalk.SpecFlow.Table(new string[] {
+                            "Property",
+                            "Value"});
+                table4.AddRow(new string[] {
                             "Number",
                             "101"});
-                table3.AddRow(new string[] {
+                table4.AddRow(new string[] {
                             "Start",
                             "2020-03-03"});
-                table3.AddRow(new string[] {
+                table4.AddRow(new string[] {
                             "End",
                             "2020-03-04"});
-#line 17
- testRunner.Then("I expect that room was booked:", ((string)(null)), table3, "Then ");
+#line 21
+ testRunner.When("I book a room:", ((string)(null)), table4, "When ");
+#line hidden
+                TechTalk.SpecFlow.Table table5 = new TechTalk.SpecFlow.Table(new string[] {
+                            "Property",
+                            "Value"});
+                table5.AddRow(new string[] {
+                            "Number",
+                            "101"});
+                table5.AddRow(new string[] {
+                            "Start",
+                            "2020-03-03"});
+                table5.AddRow(new string[] {
+                            "End",
+                            "2020-03-04"});
+#line 27
+ testRunner.Then("I expect that room was booked:", ((string)(null)), table5, "Then ");
+#line hidden
+                TechTalk.SpecFlow.Table table6 = new TechTalk.SpecFlow.Table(new string[] {
+                            "Property",
+                            "Value"});
+                table6.AddRow(new string[] {
+                            "AvailableRooms",
+                            "[]"});
+                table6.AddRow(new string[] {
+                            "Found",
+                            "false"});
+#line 33
+ testRunner.And("I get query results:", ((string)(null)), table6, "And ");
 #line hidden
             }
             this.ScenarioCleanup();

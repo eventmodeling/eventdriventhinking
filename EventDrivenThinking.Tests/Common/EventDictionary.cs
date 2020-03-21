@@ -11,6 +11,21 @@ namespace EventDrivenThinking.Tests.Common
     {
         private List<EventEntry> _events;
         private List<CommandEntry> _commands;
+        private List<QueryEntry> _queries;
+        public class QueryEntry
+        {
+            public Type QueryType { get; private set; }
+            public IQuerySchema QuerySchema { get; private set; }
+            public Statement Description { get; private set; }
+
+            public QueryEntry(Type queryType, IQuerySchema querySchema)
+            {
+                string text = $"{querySchema.Category.Humanize()} {querySchema.Type.Name.Humanize()}";
+                QueryType = queryType;
+                QuerySchema = querySchema;
+                Description = new Statement(text);
+            }
+        }
         public class CommandEntry
         {
             public Type CommandType { get; private set; }
@@ -39,24 +54,57 @@ namespace EventDrivenThinking.Tests.Common
                 AggregateSchema = schema;
             }
         }
-        private readonly AggregateSchemaRegister _schemaRegister;
-        private readonly CommandInvocationSchemaInvocationSchemaRegister _invocationSchemaRegister;
-        public IAggregateSchemaRegister SchemaRegister => _schemaRegister;
+
+        private QuerySchemaRegister _querySchemaRegister;
+        private AggregateSchemaRegister _aggregateSchemaRegister;
+        private CommandInvocationSchemaInvocationSchemaRegister _invocationSchemaRegister;
+        private ProjectionSchemaRegister _projectionSchemaRegister;
+
+        public IAggregateSchemaRegister AggregateSchemaRegister => _aggregateSchemaRegister;
+        public IQuerySchemaRegister QuerySchemaRegister => _querySchemaRegister;
+        public IProjectionSchemaRegister ProjectionSchemaRegister => _projectionSchemaRegister;
+
         public EventDictionary(params Assembly[] assemblies)
         {
-            this._schemaRegister = new AggregateSchemaRegister();
-            this._invocationSchemaRegister = new CommandInvocationSchemaInvocationSchemaRegister();
-            _schemaRegister.Discover(assemblies);
-            _invocationSchemaRegister.Discover(assemblies);
+            PrepareCommands(assemblies);
+            PrepareEvents(assemblies);
+            PrepareQueries(assemblies);
+            PrepareProjections(assemblies);
+        }
 
-            _events = new List<EventEntry>();
-            _commands = new List<CommandEntry>();
-            foreach (IAggregateSchema i in _schemaRegister)
+        private void PrepareProjections(Assembly[] assemblies)
+        {
+            _projectionSchemaRegister = new ProjectionSchemaRegister();
+            _projectionSchemaRegister.Discover(assemblies);
+        }
+
+        void PrepareQueries(params Assembly[] assemblies)
+        {
+            _querySchemaRegister = new QuerySchemaRegister();
+            _querySchemaRegister.Discover(assemblies);
+            _queries = new List<QueryEntry>();
+
+            foreach (var q in _querySchemaRegister)
             {
-                foreach(var e in i.Events)
+                _queries.Add(new QueryEntry(q.Type, q));
+            }
+        }
+        void PrepareEvents(params Assembly[] assemblies)
+        {
+            this._aggregateSchemaRegister = new AggregateSchemaRegister();
+            _aggregateSchemaRegister.Discover(assemblies);
+            _events = new List<EventEntry>();
+            foreach (IAggregateSchema i in _aggregateSchemaRegister)
+            {
+                foreach (var e in i.Events)
                     _events.Add(new EventEntry(e.EventType, i));
             }
-            
+        }
+        void PrepareCommands(params Assembly[] assemblies)
+        {
+            this._invocationSchemaRegister = new CommandInvocationSchemaInvocationSchemaRegister();
+            _invocationSchemaRegister.Discover(assemblies);
+            _commands = new List<CommandEntry>();
             foreach (var c in _invocationSchemaRegister)
                 _commands.Add(new CommandEntry(c.Type, c));
         }
@@ -74,6 +122,8 @@ namespace EventDrivenThinking.Tests.Common
             return similarEntries[0].Entry.EventType;
         }
 
+
+
         public (Type, IClientCommandSchema) FindCommand(string commandType)
         {
             Statement st = new Statement(commandType);
@@ -86,6 +136,20 @@ namespace EventDrivenThinking.Tests.Common
 
             var entry = similarEntries[0].Entry;
             return (entry.CommandType, entry.CommandSchema);
+        }
+
+        public Type FindQuery(string queryName)
+        {
+            Statement st = new Statement(queryName);
+            var similarEntries = _queries.Select(x => new
+                {
+                    Entry = x,
+                    Similarity = st.ComputeSimilarity(x.Description)
+                }).OrderByDescending(x => x.Similarity)
+                .ToArray();
+
+            var entry = similarEntries[0].Entry;
+            return entry.QueryType;
         }
     }
 }

@@ -2,19 +2,21 @@
 
 namespace EventDrivenThinking.EventInference.Abstractions.Read
 {
+    public interface IQueryResult : IDisposable
+    {
+        object Result { get; }
+        object Model { get; }
+        event EventHandler Completed;
+    }
     /// <summary>
     /// Dispose causes to result to unsubscribe.
     /// QueryResult can be same for many models and results.
     /// </summary>
     /// <typeparam name="TModel"></typeparam>
-    public interface IQueryResult<out TModel, out TResult> : IDisposable
+    public interface IQueryResult<out TModel, out TResult> : IQueryResult
         where TModel:IModel
     {
-        TResult Result { get; }
-        TModel Model { get; }
-        /// <summary>
-        /// Completed is fired when first snapshot is loaded into the model or if all old events where applied.
-        /// </summary>
-        event EventHandler Completed;
+        new TResult Result { get; }
+        new TModel Model { get; }
     }
 }

@@ -33,14 +33,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             where TQuery : IQuery<TModel, TResult>
         {
             var engine = _serviceProvider.GetService<IQueryEngine<TModel>>();
-
-            var model = engine.CreateOrGet();
-            var queryResult = new QueryResult<TQuery, TModel, TResult>(model, engine, query, options);
-
-            engine.Subscribe<TQuery, TResult>(query, result => queryResult.OnComplete(result));
-
-
-            return queryResult;
+            return engine.Execute<TQuery,TResult>(query, options);
         }
     }
 }

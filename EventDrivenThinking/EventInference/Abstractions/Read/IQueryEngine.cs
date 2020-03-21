@@ -5,8 +5,7 @@ namespace EventDrivenThinking.EventInference.Abstractions.Read
     public interface IQueryEngine<TModel> 
         where TModel : IModel
     {
-        TModel CreateOrGet();
-        void Subscribe<TQuery, TResult>(TQuery query, Action<TResult> onComplete) where TQuery : IQuery<TModel, TResult>;
-        //TODO: Unscubscibe and load
+        IQueryResult<TModel, TResult> Execute<TQuery, TResult>(TQuery query, QueryOptions options = null)
+            where TQuery : IQuery<TModel, TResult>;
     }
 }

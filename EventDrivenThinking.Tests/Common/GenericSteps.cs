@@ -1,11 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Abstractions.Write;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Example.Model.Hotel;
+using FluentAssertions;
 using TechTalk.SpecFlow;
+using Xunit;
 
 namespace EventDrivenThinking.Tests.Common
 {
@@ -24,9 +29,21 @@ namespace EventDrivenThinking.Tests.Common
             _featureContext = featureContext;
             _defaultCatalogIdentifiers = new Dictionary<string, Guid>();
             _specificationExecutor = specContext.Executor;
-            _specificationExecutor.Init(Dictionary.SchemaRegister);
+
+            _specificationExecutor.Init(Dictionary.AggregateSchemaRegister)
+                .Init(Dictionary.ProjectionSchemaRegister)
+                .Init(Dictionary.QuerySchemaRegister);
         }
-        
+        [Then(@"I get query results:")]
+        public void ThenIGetQueryResults(Table table)
+        {
+            var lastResult = _specificationExecutor.GetQueryResults().Last();
+            var resultType = lastResult.Result.GetType();
+            var deserialized = table.Deserialize(resultType);
+
+            lastResult.Result.Should().BeEquivalentTo(deserialized);
+        }
+
 
         [Given(@"The fact: (?!.*\bof\b)(.+):")]
         [Given(@"Fact happened: (?!.*\bof\b)(.+):")]
@@ -36,7 +53,7 @@ namespace EventDrivenThinking.Tests.Common
             var evType = Dictionary.FindEvent($"{category} {eventName}");
             var ev = (IEvent)propertyTable.Deserialize(evType);
 
-            var metadata = Dictionary.SchemaRegister.FindAggregateByEvent(evType);
+            var metadata = Dictionary.AggregateSchemaRegister.FindAggregateByEvent(evType);
             var aggregateId = GetAggregateId(metadata);
 
             await _specificationExecutor.AppendFact(aggregateId, ev);
@@ -91,7 +108,18 @@ namespace EventDrivenThinking.Tests.Common
 
             await _specificationExecutor.ExecuteCommand(metadata, aggregateId, cmd);
         }
-        [When(@"I (.*) of (.*):")]
+
+        [When(@"I query for (.+):")]
+        public async Task WhenIQuery(string queryTypeName, Table propertyTable)
+        {
+            string category = _featureContext.FeatureInfo.Title;
+            var queryType = Dictionary.FindQuery($"{category} {queryTypeName}");
+            var query = (IQuery)propertyTable.Deserialize(queryType);
+
+            await _specificationExecutor.ExecuteQuery(query);
+        }
+        //[When(@"I (.*) of (.*):")]
+        [When(@"I (?!.*\bquery\b)(.+) of (.*):")]
         [When(@"I (.*) with (.*):")]
         public async Task WhenI(string commandType, string id, Table propertyTable)
         {
@@ -105,7 +133,8 @@ namespace EventDrivenThinking.Tests.Common
             await _specificationExecutor.ExecuteCommand(metadata, aggregateId, cmd);
         }
 
-        [When(@"I (.*) of (.*)")]
+        //[When(@"I (.*) of (.*)")]
+        [When(@"I (?!.*\bquery\b)(.+) of (.*)")]
         [When(@"I (.*) with (.*)")]
         public async Task WhenI(string commandType, string id)
         {
