@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
-using EventDrivenThinking.Example.Model.Projections;
+using EventDrivenThinking.Example.Model.ReadModels.Hotel;
 using EventDrivenThinking.Ui;
 
-namespace EventDrivenThinking.Example.Model.Hotel
+namespace EventDrivenThinking.Example.Model.Domain.Hotel
 {
     // The responsibility of view model is to create commands
     // and coordinate non-functional configuration of views. 

@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using EventDrivenThinking.Ui;
 
-namespace EventDrivenThinking.Example.Model.Projections
+namespace EventDrivenThinking.Example.Model.ReadModels.Hotel
 {
     public class ViewModelRoomAvailabilityModel : IRoomAvailabilityModel
     {

@@ -13,6 +13,7 @@ namespace EventDrivenThinking.App.Configuration
         private readonly Lazy<ProjectionsConfig> _projections;
         private readonly Lazy<ProcessorsConfig> _processors;
         private readonly Lazy<CommandInvocationsConfig> _commandInvocations;
+        private readonly Lazy<QueryConfig> _queryConfig;
         internal IPartitionSchemaRegister SchemaRegister { get; }
         internal IServiceExtensionProvider ServiceExtensionProvider { get; }
         internal ILogger Logger { get; }
@@ -28,6 +29,7 @@ namespace EventDrivenThinking.App.Configuration
             _processors = new Lazy<ProcessorsConfig>(() => WriteThrough(new ProcessorsConfig(this)));
             _projections = new Lazy<ProjectionsConfig>(() => WriteThrough(new ProjectionsConfig(this)));
             _commandInvocations = new Lazy<CommandInvocationsConfig>(() => WriteThrough(new CommandInvocationsConfig(this)));
+            _queryConfig = new Lazy<QueryConfig>(() => WriteThrough(new QueryConfig(this)));
             Configs = new List<IStageConfig>();
         }
 
@@ -66,5 +68,7 @@ namespace EventDrivenThinking.App.Configuration
         public ProcessorsConfig Processors => _processors.Value;
 
         public CommandInvocationsConfig CommandInvocations => _commandInvocations.Value;
+
+        public QueryConfig Queries => _queryConfig.Value;
     }
 }

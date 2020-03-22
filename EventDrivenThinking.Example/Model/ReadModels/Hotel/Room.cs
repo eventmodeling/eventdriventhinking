@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace EventDrivenThinking.Example.Model.Projections
+namespace EventDrivenThinking.Example.Model.ReadModels.Hotel
 {
     public class Room
     {

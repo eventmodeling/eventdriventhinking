@@ -2,21 +2,27 @@
 
 namespace EventDrivenThinking.EventInference.Abstractions.Read
 {
-    public interface IQueryResult : IDisposable
+    public interface ILiveResult : IDisposable
     {
+        LiveQueryStatus Status { get; }
         object Result { get; }
-        object Model { get; }
-        event EventHandler Completed;
+        event EventHandler ResultUpdated;
+        event EventHandler StatusChanged;
+    }
+
+    public enum LiveQueryStatus
+    {
+        Initialized,
+        Running,
+        Disposed
     }
     /// <summary>
     /// Dispose causes to result to unsubscribe.
     /// QueryResult can be same for many models and results.
     /// </summary>
     /// <typeparam name="TModel"></typeparam>
-    public interface IQueryResult<out TModel, out TResult> : IQueryResult
-        where TModel:IModel
+    public interface ILiveResult<out TResult> : ILiveResult
     {
         new TResult Result { get; }
-        new TModel Model { get; }
     }
 }

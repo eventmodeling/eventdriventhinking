@@ -1,13 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Abstractions.Write;
 using EventDrivenThinking.EventInference.Schema;
-using EventDrivenThinking.Example.Model.Hotel;
+using EventDrivenThinking.Example.Model.Domain.Hotel;
 using FluentAssertions;
 using TechTalk.SpecFlow;
 using Xunit;
@@ -37,6 +39,8 @@ namespace EventDrivenThinking.Tests.Common
         [Then(@"I get query results:")]
         public void ThenIGetQueryResults(Table table)
         {
+            Debug.WriteLine("Waiting.......");
+            Thread.Sleep(100);
             var lastResult = _specificationExecutor.GetQueryResults().Last();
             var resultType = lastResult.Result.GetType();
             var deserialized = table.Deserialize(resultType);

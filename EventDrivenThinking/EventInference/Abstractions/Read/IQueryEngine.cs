@@ -1,11 +1,13 @@
 ﻿using System;
+using System.Threading.Tasks;
 
 namespace EventDrivenThinking.EventInference.Abstractions.Read
 {
     public interface IQueryEngine<TModel> 
         where TModel : IModel
     {
-        IQueryResult<TModel, TResult> Execute<TQuery, TResult>(TQuery query, QueryOptions options = null)
-            where TQuery : IQuery<TModel, TResult>;
+        Task<ILiveResult<TResult>> Execute<TQuery, TResult>(TQuery query, QueryOptions options = null)
+            where TQuery : IQuery<TModel, TResult>
+            where TResult: class; // cannot be struct, because results are live will be changing. 
     }
 }

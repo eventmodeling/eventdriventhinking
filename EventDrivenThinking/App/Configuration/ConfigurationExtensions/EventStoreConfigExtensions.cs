@@ -15,7 +15,12 @@ namespace EventDrivenThinking.App.Configuration
         public static FeaturePartition SubscribeFromEventStore(this ProcessorsConfig config)
         {
             return config.Merge(new ProcessorsSliceStartup());
-        }   
+        }
+
+        public static FeaturePartition FromEventStore(this QueryConfig config)
+        {
+            return config.Merge(new QuerySliceStartup());
+        }
     }
 
     public static class BuildInConfigExtensions

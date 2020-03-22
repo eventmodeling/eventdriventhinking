@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Text;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
@@ -49,7 +50,10 @@ namespace EventDrivenThinking.EventInference.EventStore
             var contentBytes = Encoding.UTF8.GetBytes(content);
             var metadataBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metadata));
 
+            Debug.WriteLine($"Creating a link {content}");
+
             return new EventData(Guid.NewGuid(), "$>", false, contentBytes, metadataBytes);
+            //return new EventData(ev.Id, "$>", false, contentBytes, metadataBytes);
         }
 
         public EventData Create(EventEnvelope ev)

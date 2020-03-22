@@ -36,6 +36,7 @@ namespace EventDrivenThinking.App.Configuration
             AddSchema(services.GetSchemaRegister<IAggregateSchema>())
                 .AddSchema(services.GetSchemaRegister<IProjectionSchema>())
                 .AddSchema(services.GetSchemaRegister<IProcessorSchema>())
+                .AddSchema(services.GetSchemaRegister<IQuerySchema>())
                 .AddSchema(services.GetSchemaRegister<IClientCommandSchema>());
             
         }
@@ -76,6 +77,17 @@ namespace EventDrivenThinking.App.Configuration
             get
             {
                 foreach (var i in Set<IProcessorSchema>().Where(x => _filter(x)))
+                {
+                    _visitor.VisitOnce(i, this);
+                    yield return i;
+                }
+            }
+        }
+        public IEnumerable<IQuerySchema> QuerySchema
+        {
+            get
+            {
+                foreach (var i in Set<IQuerySchema>().Where(x => _filter(x)))
                 {
                     _visitor.VisitOnce(i, this);
                     yield return i;

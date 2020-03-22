@@ -83,10 +83,13 @@ namespace EventDrivenThinking.Tests.Integration
         [Xunit.SkippableFactAttribute(DisplayName="I want to execute simple command against an aggregate")]
         [Xunit.TraitAttribute("FeatureTitle", "EventDrivenFeatures")]
         [Xunit.TraitAttribute("Description", "I want to execute simple command against an aggregate")]
+        [Xunit.TraitAttribute("Category", "app")]
         public virtual void IWantToExecuteSimpleCommandAgainstAnAggregate()
         {
-            string[] tagsOfScenario = ((string[])(null));
-            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("I want to execute simple command against an aggregate", null, ((string[])(null)));
+            string[] tagsOfScenario = new string[] {
+                    "app"};
+            TechTalk.SpecFlow.ScenarioInfo scenarioInfo = new TechTalk.SpecFlow.ScenarioInfo("I want to execute simple command against an aggregate", null, new string[] {
+                        "app"});
 #line 5
 this.ScenarioInitialize(scenarioInfo);
 #line hidden
@@ -125,6 +128,9 @@ this.ScenarioInitialize(scenarioInfo);
                 table2.AddRow(new string[] {
                             "End",
                             "2020-03-04"});
+                table2.AddRow(new string[] {
+                            "Floor",
+                            "1"});
 #line 11
  testRunner.When("I query for availability of a room:", ((string)(null)), table2, "When ");
 #line hidden
@@ -137,7 +143,7 @@ this.ScenarioInitialize(scenarioInfo);
                 table3.AddRow(new string[] {
                             "Found",
                             "true"});
-#line 16
+#line 17
  testRunner.Then("I get query results:", ((string)(null)), table3, "Then ");
 #line hidden
                 TechTalk.SpecFlow.Table table4 = new TechTalk.SpecFlow.Table(new string[] {
@@ -152,7 +158,7 @@ this.ScenarioInitialize(scenarioInfo);
                 table4.AddRow(new string[] {
                             "End",
                             "2020-03-04"});
-#line 21
+#line 22
  testRunner.When("I book a room:", ((string)(null)), table4, "When ");
 #line hidden
                 TechTalk.SpecFlow.Table table5 = new TechTalk.SpecFlow.Table(new string[] {
@@ -167,7 +173,7 @@ this.ScenarioInitialize(scenarioInfo);
                 table5.AddRow(new string[] {
                             "End",
                             "2020-03-04"});
-#line 27
+#line 29
  testRunner.Then("I expect that room was booked:", ((string)(null)), table5, "Then ");
 #line hidden
                 TechTalk.SpecFlow.Table table6 = new TechTalk.SpecFlow.Table(new string[] {
@@ -179,7 +185,7 @@ this.ScenarioInitialize(scenarioInfo);
                 table6.AddRow(new string[] {
                             "Found",
                             "false"});
-#line 33
+#line 35
  testRunner.And("I get query results:", ((string)(null)), table6, "And ");
 #line hidden
             }

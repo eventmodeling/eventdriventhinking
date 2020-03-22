@@ -14,6 +14,7 @@ namespace EventDrivenThinking.EventInference.Schema
     {
         private readonly List<QuerySchema> _querySchema;
         private readonly Dictionary<Type, QuerySchema> _queryTypeIndex;
+
         class QuerySchema : IQuerySchema
         {
             public Type Type { get; }
@@ -21,10 +22,13 @@ namespace EventDrivenThinking.EventInference.Schema
 
             public Type ModelType { get; }
             public Type ProjectionType { get; }
-            public Type[] Partitioners { get; }
+            public Type[] StreamPartitioners { get; }
+            public Type[] QueryPartitioners { get; }
             public Type QueryHandlerType { get; }
             public Type ResultType { get; }
-            public QuerySchema(Type type, Type modelType, Type projectionType, Type queryHandlerType, Type resultType, string category, params Type[] partitioners)
+            public QuerySchema(Type type, Type modelType, Type projectionType, Type queryHandlerType, Type resultType, string category, 
+                Type[] streamPartitioners,
+                Type[] queryPartitioners)
             {
                 Type = type;
                 ModelType = modelType;
@@ -32,7 +36,8 @@ namespace EventDrivenThinking.EventInference.Schema
                 QueryHandlerType = queryHandlerType;
                 ResultType = resultType;
                 Category = category;
-                Partitioners = partitioners;
+                StreamPartitioners = streamPartitioners;
+                QueryPartitioners = queryPartitioners;
                 _tags = new Lazy<HashSet<string>>(() => new HashSet<string>(Type.FullName.Split('.')));
             }
             private readonly Lazy<HashSet<string>> _tags;
@@ -48,9 +53,11 @@ namespace EventDrivenThinking.EventInference.Schema
             _querySchema = new List<QuerySchema>();
             _queryTypeIndex = new Dictionary<Type, QuerySchema>();
         }
-        public IQuerySchema GetByEventType(Type eventType)
+        
+
+        public IQuerySchema GetByQueryType(Type queryType)
         {
-            return _queryTypeIndex[eventType];
+            return _queryTypeIndex[queryType];
         }
 
         public IEnumerator<IQuerySchema> GetEnumerator()
@@ -101,9 +108,11 @@ namespace EventDrivenThinking.EventInference.Schema
                 .Where(t => t.ImplementsOpenInterface(typeof(IProjection<>)) && !t.IsAbstract)
                 .ToArray();
 
-            var partitionerTypeIndex = types.Where(x => x.ImplementsOpenInterface(typeof(IProjectionStreamPartitioner<>)) && !x.IsAbstract)
-                .ToDictionary(x => x.FindOpenInterfaces(typeof(IProjectionStreamPartitioner<>)).Single());
-
+            var partitionerStreamIndex = types.Where(x => x.ImplementsOpenInterface(typeof(IProjectionStreamPartitioner<>)) && !x.IsAbstract)
+                .ToDictionary(x => x.FindOpenInterfaces(typeof(IProjectionStreamPartitioner<>)).Single().GetGenericArguments()[0]);
+            
+            var partitionerQueryIndex = types.Where(x => x.ImplementsOpenInterface(typeof(IQueryPartitioner<>)) && !x.IsAbstract)
+                .ToDictionary(x => x.FindOpenInterfaces(typeof(IQueryPartitioner<>)).Single().GetGenericArguments()[0]);
 
             List<ProjectionInfo> projectionInfos = new List<ProjectionInfo>();
             foreach (var projectionType in projectionTypes)
@@ -137,7 +146,9 @@ namespace EventDrivenThinking.EventInference.Schema
                             pi.ProjectionType, 
                             queryHandlerType.HandlerType, 
                             resultType, 
-                            partitionerTypeIndex.ContainsKey(pi.ProjectionType) ? new []{ partitionerTypeIndex[pi.ProjectionType]} : Array.Empty<Type>());
+                            partitionerStreamIndex.ContainsKey(pi.ProjectionType) ? new []{ partitionerStreamIndex[pi.ProjectionType]} : Array.Empty<Type>(),
+                            partitionerQueryIndex.ContainsKey(queryType) ? new[] { partitionerQueryIndex[queryType] } : Array.Empty<Type>()
+                            );
                     }
                 }
             }
@@ -153,9 +164,12 @@ namespace EventDrivenThinking.EventInference.Schema
             }
         }
 
-        private QuerySchema Register(Type type, Type modelType, Type projectionType, Type queryHandlerType, Type resultType, params Type[] partitioners)
+        private QuerySchema Register(Type type, Type modelType, Type projectionType, Type queryHandlerType, Type resultType, Type[] streamPartitioners,
+            Type[] queryPartitioners)
         {
-            QuerySchema qs = new QuerySchema(type, modelType, projectionType, queryHandlerType, resultType, ServiceConventions.GetCategoryFromNamespaceFunc(queryHandlerType.Namespace), partitioners);
+            QuerySchema qs = new QuerySchema(type, modelType, projectionType, queryHandlerType, resultType, ServiceConventions.GetCategoryFromNamespaceFunc(queryHandlerType.Namespace), 
+                streamPartitioners, 
+                queryPartitioners);
             _querySchema.Add(qs);
             _queryTypeIndex.Add(type, qs);
             return qs;

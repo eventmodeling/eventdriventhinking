@@ -2,7 +2,7 @@
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Write;
 
-namespace EventDrivenThinking.Example.Model.Hotel
+namespace EventDrivenThinking.Example.Model.Domain.Hotel
 {
     public class CloseRoom : ICommand
     {

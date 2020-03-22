@@ -59,15 +59,6 @@ namespace EventDrivenThinking.App.Configuration.EventStore
             //throw new NotImplementedException("We need to implement reconnect.");
             Debug.WriteLine($"Subscription was dropped {_streamName} (reason = {arg2}, Exception = {arg3}), reconnecting.");
             _reconnectionCounter += 1;
-            
-
-            //this.Subscription = _connection.SubscribeToStreamFrom(_streamName,
-            //    _lastCheckpoint,
-            //    _settings,
-            //    OnEventAppeared,
-            //    OnLiveProcessingStarted, OnSubscriptionDropped);
-            
-            
         }
 
         private void OnLiveProcessingStarted(EventStoreCatchUpSubscription obj)
@@ -82,7 +73,8 @@ namespace EventDrivenThinking.App.Configuration.EventStore
 
             var ev = JsonConvert.DeserializeObject<TEvent>(eventData);
             var m = JsonConvert.DeserializeObject<EventMetadata>(metaData);
-
+            m.Version = arg2.Event.EventNumber;
+            Debug.WriteLine($"==========> EventAppeared: {m.Version} {ev.GetType().Name}");
             _lastCheckpoint = arg2.OriginalEventNumber;
             
             await _coordinator.Push(_number, m, ev);
@@ -285,14 +277,31 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         
     }
 
+    static class FileCheckpointConfig
+    {
+        static FileCheckpointConfig()
+        {
+            string folder = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
+            Path = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), folder);
+            if (!Directory.Exists(Path))
+                Directory.CreateDirectory(Path);
+        }
+
+        public static void Clean()
+        {
+            foreach (var i in Directory.GetFiles(Path, "*.chk")) 
+                File.Delete(i);
+        }
+        public static string Path { get; set; }
+    }
     class FileCheckpointRepository<TOwner, TEvent> : ICheckpointRepository<TOwner, TEvent>
     {
         private readonly string fileName;
 
         public FileCheckpointRepository()
         {
-            this.fileName = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "Modellution",
+            string folder  = Process.GetCurrentProcess().ProcessName;
+            this.fileName = Path.Combine(FileCheckpointConfig.Path,
                 $"{typeof(TOwner).Name}_{typeof(TEvent).Name}.chk");
         }
         public async Task<long?> GetLastCheckpoint()
@@ -311,7 +320,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
 
         public async Task SaveCheckpoint(long checkpoint)
         {
-            using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.None, 8))
+            using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write, 8))
             {
                 await fs.WriteAsync(BitConverter.GetBytes(checkpoint), 0, 8);
                 await fs.FlushAsync();

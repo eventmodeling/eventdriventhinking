@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.Models;
@@ -43,13 +44,13 @@ namespace EventDrivenThinking.Integrations.EventAggregator
                 .Subscribe(ev => _events.Add(ev), ThreadOption.UIThread, true);
         }
     }
-    public class EventAggregatorSubscriptionManager : ISubscriptionManager
+    public class EventAggregatorModelProjectionSubscriber<TModel> : IModelProjectionSubscriber<TModel>
     {
         private readonly IEventAggregator _eventAggregator;
         private readonly IEventStream _stream;
         private readonly ILogger _logger;
         private readonly MethodInfo _method;
-        public EventAggregatorSubscriptionManager(IEventAggregator eventAggregator, IEventStream stream, ILogger logger)
+        public EventAggregatorModelProjectionSubscriber(IEventAggregator eventAggregator, IEventStream stream, ILogger logger)
         {
             _eventAggregator = eventAggregator;
             _stream = stream;
@@ -75,6 +76,12 @@ namespace EventDrivenThinking.Integrations.EventAggregator
             _logger.Information("SubscriptionManager is subscribing an event {eventName} though EventAggregator", typeof(TEventType).Name);
             _eventAggregator.GetEvent<PubSubEvent<EventEnvelope<TEventType>>>()
                 .Subscribe((ev => onEventReceived(new[] {ev})), ThreadOption.UIThread,true);
+        }
+
+
+        public Task<ISubscription> SubscribeToStream(Func<(EventMetadata, IEvent)[], Task> onEvents, Action<ISubscription> liveProcessingStarted, Guid? partitionId = null, long? location = null)
+        {
+            throw new NotImplementedException();
         }
     }
 }

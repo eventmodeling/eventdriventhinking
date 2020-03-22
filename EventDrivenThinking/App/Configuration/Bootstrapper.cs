@@ -46,7 +46,7 @@ namespace EventDrivenThinking.App.Configuration
             // common registrations
             _collection.TryAddTransient(typeof(IProjectionExecutor<>), typeof(ProjectionExecutor<>));
             _collection.TryAddSingleton(typeof(IQueryEngine<>), typeof(QueryEngine<>));
-            _collection.TryAddSingleton(typeof(IModelSubscriber<>), typeof(ModelSubscriber<>));
+            
             _collection.TryAddSingleton(typeof(ICheckpointRepository<,>),typeof(FileCheckpointRepository<,>));
 
             _collection.TryAddSingleton(sp => _config.Services.AggregateSchemaRegister);

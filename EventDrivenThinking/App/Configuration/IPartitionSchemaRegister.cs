@@ -9,7 +9,8 @@ namespace EventDrivenThinking.App.Configuration
         IEnumerable<IAggregateSchema> AggregateSchema { get; }
         IEnumerable<IProjectionSchema> ProjectionSchema { get; }
         IEnumerable<IProcessorSchema> ProcessorSchema { get; }
-        
+        IEnumerable<IQuerySchema> QuerySchema { get; }
+
         IEnumerable<IClientCommandSchema> CommandInvocationSchema { get; }
         IEnumerable<T> Set<T>() where T : ISchema;
         //IPartitionSchemaRegister AddSchema<T>(IEnumerable<T> items)

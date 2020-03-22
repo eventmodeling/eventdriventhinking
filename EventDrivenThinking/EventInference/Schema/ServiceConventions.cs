@@ -18,7 +18,10 @@ namespace EventDrivenThinking.EventInference.Schema
         public static Func<string,string> GetCategoryFromNamespaceFunc { get; set; }
         public static Func<Type, string> GetActionNameFromCommandFunc { get; set; }
 
-
+        public static string GetProjectionStreamFromType(Type t)
+        {
+            return $"{GetCategoryFromNamespace(t.Namespace)}Projection";
+        }
         public static string GetCategoryFromNamespace(string ns)
         {
             return GetCategoryFromNamespaceFunc(ns);

@@ -25,8 +25,8 @@ namespace EventDrivenThinking.Tests.Common
         IAsyncEnumerable<(Guid, IEvent)> GetEmittedEvents();
         Task ExecuteCommand(IClientCommandSchema metadata, Guid aggregateId, ICommand cmd);
         Task AppendFact(Guid aggregateId, IEvent ev);
-        Task<IQueryResult> ExecuteQuery(IQuery query);
-        IEnumerable<IQueryResult> GetQueryResults();
+        Task<ILiveResult> ExecuteQuery(IQuery query);
+        IEnumerable<ILiveResult> GetQueryResults();
     }
 
     
@@ -36,7 +36,7 @@ namespace EventDrivenThinking.Tests.Common
         {
             public IQuery Query;
             public IProjection Projection;
-            public IQueryResult Result;
+            public ILiveResult Result;
         }
         public InMemorySpecificationExecutor()
         {
@@ -125,7 +125,7 @@ namespace EventDrivenThinking.Tests.Common
                 .Single()
                 .GetGenericArguments();
 
-            var task = (Task<IQueryResult>)typeof(InMemorySpecificationExecutor)
+            var task = (Task<ILiveResult>)typeof(InMemorySpecificationExecutor)
                 .GetMethod(nameof(OnUpdateQueryResultsForProjection),
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.InvokeMethod)
                 .MakeGenericMethod(new[] { queryType, args[1], args[0] })
@@ -133,21 +133,18 @@ namespace EventDrivenThinking.Tests.Common
         }
 
 
-        private async Task<IQueryResult> OnUpdateQueryResultsForProjection<TQuery, TResult, TModel>(LiveQuery query)
+        private async Task<ILiveResult> OnUpdateQueryResultsForProjection<TQuery, TResult, TModel>(LiveQuery query)
             where TModel : IModel
             where TQuery : IQuery<TModel, TResult>
         {
             var querySchema = _querySchemaRegister.First(x => x.Type == typeof(TQuery));
-            var projectionSchema = _projectionSchemaRegister.FindByModelType(querySchema.ModelType);
             
             var queryHandler = (IQueryHandler<TQuery, TModel, TResult>)Activator.CreateInstance(querySchema.QueryHandlerType);
             var qr = queryHandler.Execute((TModel)query.Projection.Model, (TQuery)query.Query);
 
-            var config = new MapperConfiguration(cfg => cfg.CreateMap<TResult, TResult>());
-            var mapper = config.CreateMapper();
-            var oldResult = (TResult)query.Result.Result;
-            mapper.Map(qr, oldResult);
-
+            QueryEngine<TModel>.LiveQuery<TQuery, TResult> l = (QueryEngine<TModel>.LiveQuery<TQuery, TResult>) query.Result;
+            l.OnUpdate(qr);
+            
             return query.Result;
         }
 
@@ -156,31 +153,31 @@ namespace EventDrivenThinking.Tests.Common
             _eventsInPast.Add((aggregateId, ev));
         }
 
-        public async Task<IQueryResult> ExecuteQuery(IQuery query)
+        public async Task<ILiveResult> ExecuteQuery(IQuery query)
         {
             var args = query.GetType()
                 .FindOpenInterfaces(typeof(IQuery<,>))
                 .Single()
                 .GetGenericArguments();
 
-            var task = (Task< IQueryResult>) typeof(InMemorySpecificationExecutor)
+            var task = (Task< ILiveResult>) typeof(InMemorySpecificationExecutor)
                 .GetMethod(nameof(ExecuteQuery),
                     BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.InvokeMethod)
                 .MakeGenericMethod(new[] {query.GetType(), args[1], args[0]})
                 .Invoke(this, new[] {query});
 
 
-            IQueryResult r = await task;
+            ILiveResult r = await task;
             
             return r;
         }
 
-        public IEnumerable<IQueryResult> GetQueryResults()
+        public IEnumerable<ILiveResult> GetQueryResults()
         {
             return _queryResults.Select(x=>x.Result);
         }
 
-        private async Task<IQueryResult> ExecuteQuery<TQuery, TResult, TModel>(TQuery query) 
+        private async Task<ILiveResult> ExecuteQuery<TQuery, TResult, TModel>(TQuery query) 
             where TModel : IModel
             where TQuery: IQuery<TModel, TResult>
         {
@@ -210,12 +207,20 @@ namespace EventDrivenThinking.Tests.Common
             var queryHandler = (IQueryHandler<TQuery, TModel, TResult>) Activator.CreateInstance(querySchema.QueryHandlerType);
             var qr = queryHandler.Execute(projection.Model, query);
 
-            var result = new QueryResult<TQuery, TModel, TResult>(model, query, new QueryOptions());
-            result.OnComplete(qr);
+            var result =
+                new QueryEngine<TModel>.LiveQuery<TQuery, TResult>(query, null, querySchema, OnDispose,
+                    new QueryOptions());
+
+            result.OnResult(qr);
 
             _queryResults.Add(new LiveQuery { Query = query, Result = result, Projection = projection});
 
             return result;
+        }
+
+        private void OnDispose<TQuery>(TQuery obj) where TQuery : IQuery
+        {
+            
         }
 
         public void Dispose()

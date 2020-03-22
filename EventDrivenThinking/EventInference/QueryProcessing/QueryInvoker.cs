@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Reflection;
+using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using Microsoft.Extensions.DependencyInjection;
@@ -20,17 +21,18 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
         }
 
 
-        public IQueryResult<TModel, TResult> Get<TModel, TResult>(IQuery<TModel, TResult> query, QueryOptions options = null)
+        public Task<ILiveResult<TResult>> Get<TModel, TResult>(IQuery<TModel, TResult> query, QueryOptions options = null)
             where TModel : IModel
         {
             var queryType = query.GetType();
-            return (IQueryResult<TModel, TResult>)_executeGet
+            return (Task< ILiveResult<TResult>>)_executeGet
                 .MakeGenericMethod(queryType, typeof(TModel), typeof(TResult))
                 .Invoke(this, new object[] { query, options });
         }
-        IQueryResult<TModel, TResult> ExecuteGet<TQuery, TModel, TResult>(TQuery query, QueryOptions options = null)
+        Task<ILiveResult<TResult>> ExecuteGet<TQuery, TModel, TResult>(TQuery query, QueryOptions options = null)
             where TModel : IModel
             where TQuery : IQuery<TModel, TResult>
+            where TResult : class
         {
             var engine = _serviceProvider.GetService<IQueryEngine<TModel>>();
             return engine.Execute<TQuery,TResult>(query, options);

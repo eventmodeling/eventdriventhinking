@@ -8,8 +8,8 @@ using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
-using EventDrivenThinking.Example.Model.Hotel;
-using EventDrivenThinking.Example.Model.Projections;
+using EventDrivenThinking.Example.Model.Domain.Hotel;
+using EventDrivenThinking.Example.Model.ReadModels.Hotel;
 using EventDrivenThinking.Integrations.Unity;
 using EventDrivenThinking.Utils;
 using EventStore.ClientAPI;
@@ -40,20 +40,27 @@ namespace EventDrivenThinking.Tests.Integration
         {
             var connection = await Connect();
 
-            Guid eventData = Guid.NewGuid();
-            string streamName = $"foo-{Guid.NewGuid().ToString()}";
-            var eventObj = new RoomAdded() {Number = "101"};
-            var metadata = new EventMetadata(Guid.NewGuid(), typeof(HotelAggregate), Guid.NewGuid(), 0);
-            var result = await connection.AppendToStreamAsync(streamName, ExpectedVersion.Any,
-                new EventData(eventData, "roomAdded",true, eventObj.ToJsonBytes(), metadata.ToJsonBytes()));
-
-            var linkData = new EventData(eventData, "$>", false, Encoding.UTF8.GetBytes($"0@{streamName}"), null);
             
-            var projectionStream = await connection.AppendToStreamAsync("projection", ExpectedVersion.Any, linkData);
+            string streamName = $"Foo-{Guid.NewGuid().ToString()}";
+            RoomAdded eventObj = null;
 
-            var readProjection = await connection.ReadStreamEventsForwardAsync("projection",0, 20, true);
+            for (int i = 0; i < 10; i++)
+            {
+                eventObj = new RoomAdded() { Number = "101" };
+
+                var metadata = new EventMetadata(Guid.NewGuid(), typeof(HotelAggregate), Guid.NewGuid(), 0);
+                var result = await connection.AppendToStreamAsync(streamName, ExpectedVersion.Any,
+                    new EventData(Guid.NewGuid(), "RoomAdded", true, eventObj.ToJsonBytes(), metadata.ToJsonBytes()));
+
+                var linkData = new EventData(Guid.NewGuid(), "$>", false, Encoding.UTF8.GetBytes($"{i}@{streamName}"), null);
+
+                var projectionStream =
+                    await connection.AppendToStreamAsync("projection", ExpectedVersion.Any, linkData);
+
+             
+            }
+            var readProjection = await connection.ReadStreamEventsForwardAsync("projection", 0, 20, true);
             var data = readProjection.Events.Last().Event.Data.FromJsonBytes<RoomAdded>();
-
             data.Should().BeEquivalentTo(eventObj);
         }
 

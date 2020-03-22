@@ -5,10 +5,13 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
+using System.ServiceModel.Security;
 using System.Text;
 using System.Threading.Tasks;
 using Docker.DotNet;
 using Docker.DotNet.Models;
+using EventDrivenThinking.App.Configuration;
+using EventDrivenThinking.App.Configuration.EventStore;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Abstractions.Write;
@@ -17,6 +20,10 @@ using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.QueryProcessing;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Example.Model.Domain.Hotel;
+using EventDrivenThinking.Example.Model.ReadModels.Hotel;
+using EventDrivenThinking.Integrations.Unity;
+using EventDrivenThinking.Reflection;
 using EventStore.ClientAPI;
 using EventStore.ClientAPI.Common.Log;
 using EventStore.ClientAPI.Embedded;
@@ -29,6 +36,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using Serilog.Core;
+using Unity;
 
 #pragma warning disable 1998
 namespace EventDrivenThinking.Tests.Common
@@ -39,6 +47,18 @@ namespace EventDrivenThinking.Tests.Common
     }
     public class AppSpecificationExecutor : ISpecificationExecutor
     {
+        class ClientApp
+        {
+            public readonly IServiceProvider ServiceProvider;
+            public readonly IServiceCollection ServiceCollection;
+
+            public ClientApp(IServiceProvider serviceProvider, IServiceCollection serviceCollection)
+            {
+                ServiceProvider = serviceProvider;
+                ServiceCollection = serviceCollection;
+                serviceCollection.AddSingleton(serviceProvider);
+            }
+        }
         class StackFrame
         {
             public ExecutorMode Mode { get; private set; }
@@ -61,20 +81,53 @@ namespace EventDrivenThinking.Tests.Common
                 await StartEventStoreInDocker();
                 await StartWebServer();
                 await StartEventStoreProjections();
+
+                await InitClient();
             }
         }
 
-        
+        private async Task InitClient()
+        {
+            Assembly[] assemblies = new[]
+            {
+                typeof(HotelAggregate).Assembly
+            };
+            _client.ServiceCollection.AddSingleton(await GetEventStoreConnection());
+            _client.ServiceCollection.AddSingleton(Logger.None);
+
+            _client.ServiceCollection.AddTransient<IRoomAvailabilityModel, RoomAvailabilityModel>();
+
+            _client.ServiceCollection.AddEventDrivenThinking(Logger.None,
+                config =>
+                {
+                    config.AddAssemblies(assemblies);
+                    config.Slices.SelectAll()
+                        .Projections.NoGlobalHandlers().SubscribeFromEventStore()
+                        .Queries.FromEventStore();
+                });
+        }
+
 
         private ClusterVNode node;
         private IWebHost _host;
         private CommandSpecExecutor _executor;
+        private ClientApp _client;
 
         public AppSpecificationExecutor()
         {
+            FileCheckpointConfig.Clean();
+
             _executor = new CommandSpecExecutor();
             _frames = new Stack<StackFrame>();
+            _liveQueries = new List<ILiveResult>();
             _frames.Push(new StackFrame(ExecutorMode.Given));
+            _queryEngines = new Dictionary<Type, object>();
+
+
+            var unityContainer = new UnityContainer();
+
+            _client = new ClientApp(new UnityServiceProvider(unityContainer),
+                new UnityServiceCollection(unityContainer));
         }
 
         private async Task StartEventStoreProjections()
@@ -108,10 +161,10 @@ namespace EventDrivenThinking.Tests.Common
                 var data = await client.Containers.InspectContainerAsync(container.ID);
                 if (data.State.Running)
                 {
-                    await client.Containers.StopContainerAsync(data.ID, new ContainerStopParameters());
+                    await client.Containers.RestartContainerAsync(data.ID, new ContainerRestartParameters());
                 }
-
-                await client.Containers.StartContainerAsync(data.ID, new ContainerStartParameters());
+                else
+                    await client.Containers.StartContainerAsync(data.ID, new ContainerStartParameters());
                 // Just make sure EventStore runs.
                 await Task.Delay(1000);
             }
@@ -158,11 +211,25 @@ namespace EventDrivenThinking.Tests.Common
 
         public ISpecificationExecutor Init(IProjectionSchemaRegister projectionSchemaRegister)
         {
+            foreach (var i in projectionSchemaRegister)
+            {
+                // hymmm 
+            }
+
             return this;
         }
 
         public ISpecificationExecutor Init(IQuerySchemaRegister querySchemaRegister)
         {
+            foreach (var i in querySchemaRegister)
+            {
+                _client.ServiceCollection.AddTransient(
+                    typeof(IQueryHandler<,,>).MakeGenericType(i.Type, i.ModelType, i.ResultType), i.QueryHandlerType);
+
+                foreach (var p in i.StreamPartitioners)
+                    _client.ServiceCollection.AddTransient(typeof(IQueryPartitioner<>).MakeGenericType(i.Type), p);
+            }
+
             return this;
         }
 
@@ -173,7 +240,7 @@ namespace EventDrivenThinking.Tests.Common
 
         public async IAsyncEnumerable<(Guid, IEvent)> GetEmittedEvents()
         {
-            await Task.Delay(1000);
+            await Task.Delay(200);
             _currentMode = ExecutorMode.Then;
             foreach (var i in _frames.Pop().Events)
                 yield return i;
@@ -214,7 +281,7 @@ namespace EventDrivenThinking.Tests.Common
             ICommand cmd)
         {
             await CheckInitialized();
-            await Task.Delay(1000);
+            
             _currentMode = ExecutorMode.When;
             await _executor.ExecuteCommand(metadata, aggregateId, cmd);
         }
@@ -222,7 +289,7 @@ namespace EventDrivenThinking.Tests.Common
         public async Task AppendFact(Guid aggregateId, IEvent ev)
         {
             await CheckInitialized();
-            await Task.Delay(1000);
+            await Task.Delay(200);
             _currentMode = ExecutorMode.Given;
             var metadata = GetAggregateSchema().FindAggregateByEvent(ev.GetType());
 
@@ -233,21 +300,57 @@ namespace EventDrivenThinking.Tests.Common
             
         }
 
-        public Task<IQueryResult> ExecuteQuery(IQuery query)
+        private List<ILiveResult> _liveQueries;
+        public async Task<ILiveResult> ExecuteQuery(IQuery query)
         {
-            throw new NotImplementedException();
+            var args = query.GetType()
+                .FindOpenInterfaces(typeof(IQuery<,>))
+                .Single()
+                .GetGenericArguments();
+
+            var task = (Task<ILiveResult>)typeof(AppSpecificationExecutor)
+                .GetMethod(nameof(ExecuteQuery),
+                    BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.InvokeMethod)
+                .MakeGenericMethod(new[] { query.GetType(), args[1], args[0] })
+                .Invoke(this, new[] { query });
+
+
+            ILiveResult r = await task;
+            _liveQueries.Add(r);
+            return r;
         }
 
-        public IEnumerable<IQueryResult> GetQueryResults()
+        private Dictionary<Type, object> _queryEngines;
+        
+
+        private IQueryEngine<TModel> Engine<TModel>()
+        where TModel : IModel
         {
-            throw new NotImplementedException();
+            if(!_queryEngines.TryGetValue(typeof(TModel), out object engine))
+            {
+                engine = ActivatorUtilities.CreateInstance<QueryEngine<TModel>>(_client.ServiceProvider);
+                _queryEngines.Add(typeof(TModel), engine);
+            }
+            return (IQueryEngine < TModel > )engine;
         }
 
-        public Task<TResult> ExecuteQuery<TQuery, TResult, TModel>(TQuery query) where TQuery : IQuery<TModel, TResult> where TModel : IModel
+        private async Task<ILiveResult> ExecuteQuery<TQuery, TResult, TModel>(TQuery query)
+            where TModel : IModel
+            where TQuery : IQuery<TModel, TResult>
+            where TResult : class
         {
-            throw new NotImplementedException();
+            var engine = Engine<TModel>();
+            var result = await engine.Execute<TQuery, TResult>(query);
+
+            return result;
         }
 
+        public IEnumerable<ILiveResult> GetQueryResults()
+        {
+            return _liveQueries;
+        }
+
+        
        
 
         private IEventStoreConnection _connection;

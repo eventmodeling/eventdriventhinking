@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Windows;
 using EventDrivenThinking.EventInference.Models;
-using EventDrivenThinking.Example.Model.Hotel;
+using EventDrivenThinking.Example.Model.Domain.Hotel;
 using FluentAssertions;
 using Newtonsoft.Json;
 using Xunit;

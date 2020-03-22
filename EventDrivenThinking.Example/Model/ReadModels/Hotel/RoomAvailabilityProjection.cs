@@ -2,10 +2,10 @@
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.Models;
-using EventDrivenThinking.Example.Model.Hotel;
+using EventDrivenThinking.Example.Model.Domain.Hotel;
 
 #pragma warning disable 1998
-namespace EventDrivenThinking.Example.Model.Projections
+namespace EventDrivenThinking.Example.Model.ReadModels.Hotel
 {
     public class RoomAvailabilityProjection : Projection<IRoomAvailabilityModel>
     {

@@ -1,5 +1,5 @@
 ﻿using EventDrivenThinking.EventInference.Abstractions;
-using EventDrivenThinking.Example.Model.Hotel;
+using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Reflection;
 using FluentAssertions;
 using Xunit;

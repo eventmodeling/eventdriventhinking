@@ -52,6 +52,7 @@ namespace EventDrivenThinking.EventInference.Models
 
        
         //[JsonProperty("v")]
+        [JsonIgnore]
         public long Version { get; set; }
 
     }

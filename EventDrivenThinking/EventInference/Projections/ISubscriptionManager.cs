@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
 
 namespace EventDrivenThinking.EventInference.Projections
@@ -7,9 +9,17 @@ namespace EventDrivenThinking.EventInference.Projections
     /// <summary>
     /// Common interface for all subscribers.
     /// </summary>
-    public interface ISubscriptionManager
+    public interface IModelProjectionSubscriber<TModel>
     {
-        void Subscribe(IEnumerable<Type> eventTypes, bool fromBeginning, Action<IEnumerable<EventEnvelope>> onEventReceived);
+        Task<ISubscription> SubscribeToStream(
+            Func<(EventMetadata, IEvent)[], Task> onEvents,
+            Action<ISubscription> liveProcessingStarted,
+            Guid? partitionId = null,
+            long? location = null);
     }
 
+    public interface ISubscription
+    {
+        bool IsLive { get; }
+    }
 }

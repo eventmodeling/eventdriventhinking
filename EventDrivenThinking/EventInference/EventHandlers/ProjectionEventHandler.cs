@@ -33,10 +33,13 @@ namespace EventDrivenThinking.EventInference.EventHandlers
 
         public async Task Execute(EventMetadata m, TEvent ev)
         {
+            Debug.WriteLine($"Executing projection in projection-event-handler: {typeof(TProjection).Name}");
             await _projection.Execute(new (EventMetadata, IEvent)[]{(m,ev)});
             _logger.Information("{projectionName} received from {aggregateId} an {eventName} {eventId}", typeof(TProjection).Name, m.AggregateId, typeof(TEvent).Name, ev.Id);
 
             await _projectionStream.Append(m, ev);
+
+            //await Task.Delay(200); // WTF - EventStore problem?
 
             foreach (var i in _partitioners)
             {
@@ -44,9 +47,6 @@ namespace EventDrivenThinking.EventInference.EventHandlers
                 foreach(var p in partitions)
                     await _projectionStream.AppendPartition(p, m, ev);
             }
-            // get all queries against the model. 
-            // calculate query-streams name from the above
-            // emit links. 
         }
     }
     

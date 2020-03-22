@@ -10,7 +10,7 @@ namespace EventDrivenThinking.EventInference.Schema
 
     public interface IQuerySchemaRegister : ISchemaRegister<IQuerySchema>
     {
-        IQuerySchema GetByEventType(Type eventType);
+        IQuerySchema GetByQueryType(Type queryType);
     }
 
     public interface IQueryPartitioner<in TQuery>
@@ -28,7 +28,8 @@ namespace EventDrivenThinking.EventInference.Schema
     {
         public Type ModelType { get; }
         public Type ProjectionType { get; }
-        public Type[] Partitioners { get; }
+        public Type[] StreamPartitioners { get; }
+        public Type[] QueryPartitioners { get; }
         public Type ResultType { get; }
         public Type QueryHandlerType { get; }
     }

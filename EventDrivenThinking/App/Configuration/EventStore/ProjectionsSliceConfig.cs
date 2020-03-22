@@ -4,42 +4,28 @@ using System.Linq;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.EventStore;
+using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Integrations.EventStore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace EventDrivenThinking.App.Configuration.EventStore
 {
-    public class QuerySliceStartup : IQuerySliceStartup
-    {
-        private IQuerySchema[] queries;
-        public void Initialize(IEnumerable<IQuerySchema> queries)
-        {
-            this.queries = queries.ToArray();
-        }
-
-        public void RegisterServices(IServiceCollection serviceCollection)
-        {
-            foreach (var i in queries)
-            {
-                foreach(var p in i.Partitioners)
-                    serviceCollection.AddSingleton(typeof(IProjectionStreamPartitioner<>).MakeGenericType(i.ProjectionType), p);
-            }
-        }
-
-        public Task ConfigureServices(IServiceProvider serviceProvider)
-        {
-            return Task.CompletedTask;
-        }
-    }
-
     public class ProjectionsSliceStartup : IProjectionSliceStartup
     {
         private IProjectionSchema[] _projections;
 
         public void RegisterServices(IServiceCollection serviceCollection)
         {
+            
+
             foreach(var i in _projections)
             {
+                // Maybe IModelProjection Should be rather from TProjection not TModel?
+                serviceCollection.TryAddSingleton(typeof(IModelProjectionSubscriber<>).MakeGenericType(i.ModelType),
+                    typeof(EventStoreModelProjectionSubscriber<>).MakeGenericType(i.ModelType));
+
                 foreach(var v in i.Events)
                 {
                     Type[] args = new Type[]{i.Type, v};

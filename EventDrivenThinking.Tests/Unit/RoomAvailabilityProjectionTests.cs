@@ -4,8 +4,8 @@ using System.Linq;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.Models;
-using EventDrivenThinking.Example.Model.Hotel;
-using EventDrivenThinking.Example.Model.Projections;
+using EventDrivenThinking.Example.Model.Domain.Hotel;
+using EventDrivenThinking.Example.Model.ReadModels.Hotel;
 using FluentAssertions;
 using Xunit;
 

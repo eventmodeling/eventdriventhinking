@@ -1,7 +1,7 @@
 ﻿Feature: EventDrivenFeatures
 	In order to siplify development I want to show development process
 
-
+@app
 Scenario: I want to execute simple command against an aggregate
 	
 	Given The fact: Room was added:
@@ -12,6 +12,7 @@ Scenario: I want to execute simple command against an aggregate
 	| Parameter | Value      |
 	| Start     | 2020-03-03 |
 	| End       | 2020-03-04 |
+	| Floor     | 1          |
 	
 	Then I get query results: 
 	| Property       | Value   |
@@ -23,6 +24,7 @@ Scenario: I want to execute simple command against an aggregate
 	| Number   | 101        |
 	| Start    | 2020-03-03 |
 	| End      | 2020-03-04 |
+	
 
 	Then I expect that room was booked:
 	| Property | Value      |

@@ -5,7 +5,7 @@ using System.Threading.Tasks;
 using EventDrivenThinking.App.Configuration.EventStore;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
-using EventDrivenThinking.Example.Model.Hotel;
+using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventStore.ClientAPI;
 using FluentAssertions;
 using NSubstitute;

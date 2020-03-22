@@ -15,7 +15,14 @@ namespace EventDrivenThinking.Integrations.Unity
 
         public object GetService(Type serviceType)
         {
-            return _container.Resolve(serviceType);
+            try
+            {
+                return _container.Resolve(serviceType);
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
     }
     public class UnityServiceScopeFactory : IServiceScopeFactory

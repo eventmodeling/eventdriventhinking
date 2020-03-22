@@ -23,7 +23,7 @@ namespace EventDrivenThinking.App.Configuration.SignalR
 
         public void RegisterServices(IServiceCollection serviceCollection)
         {
-            serviceCollection.TryAddSingleton<ISubscriptionManager, EventAggregatorSubscriptionManager>();
+            //serviceCollection.TryAddSingleton<IModelProjectionSubscriber<>, EventAggregatorModelProjectionSubscriber>();
             serviceCollection.TryAddSingleton<SignalRSubscriber>();
             serviceCollection.TryAddSingleton((sp) => CreateConnection());
         }

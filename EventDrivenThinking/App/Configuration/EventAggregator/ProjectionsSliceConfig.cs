@@ -15,7 +15,7 @@ namespace EventDrivenThinking.App.Configuration.EventAggregator
 
         public void RegisterServices(IServiceCollection serviceCollection)
         {
-            serviceCollection.AddSingleton<ISubscriptionManager, EventAggregatorSubscriptionManager>();
+            //serviceCollection.AddSingleton<IModelProjectionSubscriber<>, EventAggregatorModelProjectionSubscriber>();
         }
 
         public async Task ConfigureServices(IServiceProvider serviceProvider)

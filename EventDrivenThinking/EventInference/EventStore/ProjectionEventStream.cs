@@ -2,12 +2,14 @@
 using System.CodeDom;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Utils;
 using EventStore.ClientAPI;
 using Newtonsoft.Json;
 using ILogger = Serilog.ILogger;
@@ -31,8 +33,11 @@ namespace EventDrivenThinking.EventInference.EventStore
         private readonly IEventStoreConnection _connection;
         private readonly IEventDataFactory _eventDataFactory;
         private readonly ILogger _logger;
-        private readonly string _category;
-        private static readonly Guid _projectionId = typeof(TProjection).ComputeSourceHash();
+        private readonly string _projectionStreamName;
+        
+        //private static readonly Guid _projectionId = typeof(TProjection).ComputeSourceHash();
+        private static readonly Guid _projectionId = typeof(TProjection).FullName.ToGuid();
+
         private IProjectionSchema<TProjection> _projectionSchema;
         public ProjectionEventStream(IEventStoreConnection connection, IEventDataFactory eventDataFactory, ILogger logger, IProjectionSchema<TProjection> projectionSchema)
         {
@@ -40,13 +45,17 @@ namespace EventDrivenThinking.EventInference.EventStore
             _eventDataFactory = eventDataFactory;
             _logger = logger;
             _projectionSchema = projectionSchema;
-            _category =
+            _projectionStreamName =
                 $"{ServiceConventions.GetCategoryFromNamespace(typeof(TProjection).Namespace)}Projection";
         }
 
         public string GetPartitionStreamName(Guid key)
         {
-           return $"{_category}Partition-{key}";
+           return $"{_projectionStreamName}Partition-{key}";
+        }
+        public string GetStreamName(Guid key)
+        {
+            return $"{_projectionStreamName}-{key}";
         }
 
         public async IAsyncEnumerable<EventEnvelope> Get(Guid key)
@@ -72,7 +81,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             StreamEventsSlice slice = null;
             do
             {
-                slice = await _connection.ReadStreamEventsForwardAsync(_category, StreamPosition.Start, 100, true);
+                slice = await _connection.ReadStreamEventsForwardAsync(_projectionStreamName, StreamPosition.Start, 100, true);
                 foreach (var e in slice.Events)
                 {
                     var eventString = Encoding.UTF8.GetString(e.Event.Data);
@@ -88,18 +97,26 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         public async Task Append(EventMetadata m, IEvent e)
         {
-            string aggregateType = m.AggregateType.Name;
-            
+            var streamName = GetStreamName(_projectionId);
             var data = _eventDataFactory.CreateLink(m,e,typeof(TProjection), _projectionId);
+
+            Debug.WriteLine($"Appending to stream {streamName} {e.GetType().Name}");
+
+            var result = await _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, data);
             
-            await _connection.AppendToStreamAsync(_category, ExpectedVersion.Any, data);
+            Debug.WriteLine($"LogPosition {result.LogPosition.CommitPosition}");
         }
         public async Task AppendPartition(Guid key, EventMetadata m, IEvent e)
         {
             var streamName = GetPartitionStreamName(key);
             
             var data = _eventDataFactory.CreateLink(m, e, typeof(TProjection), _projectionId);
-            await _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, data);
+
+            Debug.WriteLine($"Appending to stream {streamName} {e.GetType().Name}");
+            
+            var result = await _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, data);
+
+            Debug.WriteLine($"LogPosition {result.LogPosition.CommitPosition}");
         }
     }
 }

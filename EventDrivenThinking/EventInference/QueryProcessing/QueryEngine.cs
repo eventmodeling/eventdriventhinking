@@ -1,36 +1,132 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Linq;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
+using EventDrivenThinking.EventInference.Core;
+using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Ui;
+using EventDrivenThinking.Utils;
 using Microsoft.Extensions.DependencyInjection;
+using Nito.AsyncEx;
 using Serilog;
 
 namespace EventDrivenThinking.EventInference.QueryProcessing
 {
     /// <summary>
     /// Understands how to process events that related to this TModel
-    /// Understands how to switch partitions. 
+    /// Understands how to switch partitions.
+    /// Can execute many queries.
+    /// Under the hood have one model.
+    /// If model changes, query results changes automatically
+    /// When two queries are executed, both have results, both will get updates.
+    /// Query Engine tracks query-results and how they will be affected by new events.
+    /// If Query returns data from the model, then changes also will be propagated.
     /// </summary>
-    /// <typeparam name="TModel"></typeparam>
+    /// <typeparam name="TModel"></typeparam>l
     public class QueryEngine<TModel> : IQueryEngine<TModel> where TModel : IModel
     {
+        class ProjectionStreamInfo
+        {
+            public Guid? PartitionId { get; private set; }
+            public bool IsRootStream => PartitionId.HasValue;
+            public ISubscription Subscription { get; set; }
+            public readonly ConcurrentDictionary<IQuery, ILiveQuery> AssociatedQueries;
+            public ProjectionStreamInfo(Guid? partitionId)
+            {
+                PartitionId = partitionId;
+                AssociatedQueries = new ConcurrentDictionary<IQuery, ILiveQuery>();
+            }
+        }
+        internal class LiveQuery<TQuery, TResult> : ILiveQuery, ILiveResult<TResult>
+            where TQuery: IQuery<TModel, TResult>
+        {
+            private readonly Action<TQuery> _onDispose;
+            
+            IQuery ILiveQuery.Query => Query;
+            public LiveQueryStatus Status { get; private set; }
+            object ILiveResult.Result => Result;
+
+            public event EventHandler ResultUpdated;
+            public event EventHandler StatusChanged;
+            object ILiveQuery.Result => Result;
+            
+            public QueryOptions Options { get; }
+            
+            public TQuery Query { get; }
+            public TResult Result { get; private set; }
+            public Guid? PartitionId { get; }
+            public LiveQuery(TQuery query, Guid? partitionId,
+                IQuerySchema schema,
+                Action<TQuery> onDispose,
+                QueryOptions options)
+            {
+                _onDispose = onDispose;
+                Query = query;
+                Options = options;
+                PartitionId = partitionId;
+            }
+
+            public void OnResult(TResult result)
+            {
+                this.Result = result;
+                Status = LiveQueryStatus.Running;
+                StatusChanged?.Invoke(this, EventArgs.Empty);
+            }
+
+            public void OnUpdate(TResult result)
+            {
+                this.Result.CopyFrom(result);
+                ResultUpdated?.Invoke(this, EventArgs.Empty);
+            }
+
+            public void Dispose()
+            {
+                _onDispose(this.Query);
+                Status = LiveQueryStatus.Disposed;
+                StatusChanged?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        interface ILiveQuery
+        {
+            IQuery Query { get; }
+            object Result { get; }
+            //IQueryResult QueryResult { get; }
+            Guid? PartitionId { get; }
+            QueryOptions Options { get; }
+        }
+
+        private ConcurrentDictionary<IQuery, ILiveQuery> _liveQueries;
+        private ConcurrentDictionary<Guid,ProjectionStreamInfo> _partitions;
+
         private TModel _model;
         private readonly IServiceProvider _serviceProvider;
-        
-        private readonly IModelSubscriber<TModel> _subscriber;
+        private readonly IQuerySchemaRegister _querySchemaRegister;
+        private readonly IProjectionSchemaRegister _projectionSchemaRegister;
+
+        private readonly IModelProjectionSubscriber<TModel> _modelProjectionSubscriber;
         private readonly ILogger _logger;
 
-        public QueryEngine(IServiceProvider serviceProvider,
-            IModelSubscriber<TModel> subscriber, ILogger logger)
+        public QueryEngine(IServiceProvider serviceProvider, 
+            IQuerySchemaRegister _querySchemaRegister,
+            IProjectionSchemaRegister _projectionSchemaRegister,
+            IModelProjectionSubscriber<TModel> modelProjectionSubscriber, 
+            ILogger logger)
         {
             _serviceProvider = serviceProvider;
-            _subscriber = subscriber;
+            this._querySchemaRegister = _querySchemaRegister;
+            this._projectionSchemaRegister = _projectionSchemaRegister;
+            _modelProjectionSubscriber = modelProjectionSubscriber;
             _logger = logger;
+            _liveQueries = new ConcurrentDictionary<IQuery, ILiveQuery>();
+            _partitions = new ConcurrentDictionary<Guid, ProjectionStreamInfo>();
             Debug.WriteLine($"QueryEngine for model {typeof(TModel).Name} created.");
         }
 
@@ -43,40 +139,82 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             }
             return _model;
         }
+        
 
-        public IQueryResult<TModel, TResult> Execute<TQuery, TResult>(TQuery query, QueryOptions options = null)
+        public async Task<ILiveResult<TResult>> Execute<TQuery, TResult>(TQuery query, QueryOptions options = null)
             where TQuery : IQuery<TModel, TResult>
+            where TResult: class
         {
-            // so here we read data from stream
-            // so we request subscription from EventHub
-            // the event hub will send it with the request id 
-            // than this needs to be dispatched here
-            // and when need events fall into this partition
-            // we will get notifications since we are subscribed to the stream
-            // so we need to buffer current events untill all the rest is processed
-            // when we subscribe to partition
-            // we might do it on 2 views - sharing one model because the switch won't delete cached data.
-            // we also don't have to share model.
-            // the problem is when partitions overlap. 
-            // this can be solved:
-            // - since we subscribe with a method name we know to which projection we fall, we also know what stream 
-            // we subscribed, since we know the query. so at the place of subscription we need to collect this information
+            var schema = _querySchemaRegister.GetByQueryType(typeof(TQuery));
+            var projectionSchema = _projectionSchemaRegister.FindByModelType(typeof(TModel));
 
+            var queryParitioner =  _serviceProvider.GetService<IQueryPartitioner<TQuery>>();
+            
+            var partitionId = queryParitioner?.CalculatePartition(CreateOrGet(), query);
+            
+            LiveQuery<TQuery, TResult> liveQuery = new LiveQuery<TQuery,  TResult>(query, partitionId, schema, OnQueryDispose, options);
 
-            var queryResult = new QueryResult<TQuery, TModel, TResult>(CreateOrGet(), query, options);
-            var handler = _serviceProvider.GetService<IQueryHandler<TQuery, TModel, TResult>>();
-
-            _subscriber.SubscribeModelForQuery(_model, query, async events =>
+            if (partitionId.HasValue)
             {
-                _logger.Information("Executing projection for query {queryName} for model {modelName}", typeof(TQuery).Name, typeof(TModel).Name);
-                var executor = _serviceProvider.GetService<IProjectionExecutor<TModel>>();
-                executor.Configure(_model);
-                await executor.Execute(events);
-            });
-            //queryResult.OnComplete();
-            //onComplete(handler.Execute(_model, query));
+                if (!_partitions.TryGetValue(partitionId.Value, out ProjectionStreamInfo streamInfo))
+                {
+                    streamInfo = new ProjectionStreamInfo(partitionId);
+                    // this needs to wait for all events to go though the wire.
+                    AsyncAutoResetEvent subscriptionReady = new AsyncAutoResetEvent(false);
+                    streamInfo.Subscription = await _modelProjectionSubscriber.SubscribeToStream(
+                        async events => await OnEvents<TQuery, TResult>(streamInfo, schema.ProjectionType, events),
+                        subscription => { subscriptionReady.Set(); },
+                        partitionId.Value);
+                    
+                    _partitions.TryAdd(partitionId.Value, streamInfo);
 
-            return queryResult;
+                    subscriptionReady.Wait();
+                    //await subscriptionReady.WaitAsync();
+                }
+                //Thread.Sleep(2000);
+                // we have subscribed to partition before. Just need to return result and execute the handler.
+                var handler = _serviceProvider.GetService<IQueryHandler<TQuery, TModel, TResult>>();
+                var result = handler.Execute(CreateOrGet(), query);
+                liveQuery.OnResult(result);
+
+                streamInfo.AssociatedQueries.TryAdd(liveQuery.Query, liveQuery);
+                _liveQueries.TryAdd(liveQuery.Query, liveQuery);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+
+            
+            
+
+            return liveQuery;
+        }
+
+        private void OnQueryDispose<TQuery>(TQuery obj) where TQuery : IQuery
+        {
+            if (_liveQueries.TryRemove(obj, out ILiveQuery liveQuery))
+            {
+                if (liveQuery.PartitionId.HasValue)
+                    _partitions[liveQuery.PartitionId.Value].AssociatedQueries.TryRemove(liveQuery.Query, out ILiveQuery tmp);
+            }
+        }
+
+        async Task OnEvents<TQuery, TResult>(ProjectionStreamInfo streamInfo, Type projectionType, IEnumerable<(EventMetadata, IEvent)> ev)
+        where TQuery:IQuery<TModel, TResult>
+        {
+            Debug.WriteLine($"OnEvent in QueryEngine. Partition {streamInfo.PartitionId}");
+            var projection = (IProjection<TModel>) ActivatorUtilities.CreateInstance(_serviceProvider, projectionType, CreateOrGet());
+            await projection.Execute(ev);
+            
+            foreach (LiveQuery<TQuery, TResult> i in streamInfo.AssociatedQueries.Values.OfType<LiveQuery<TQuery, TResult>>())
+            {
+                Debug.WriteLine("Found live query to update.");
+                var handler = _serviceProvider.GetService<IQueryHandler<TQuery, TModel, TResult>>();
+                var result = handler.Execute(CreateOrGet(), i.Query);
+
+                i.OnUpdate(result);
+            }
         }
 
         
