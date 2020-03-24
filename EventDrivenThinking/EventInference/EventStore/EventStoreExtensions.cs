@@ -4,13 +4,14 @@ using System.Diagnostics;
 using System.Linq;
 using System.Printing;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Integrations.SignalR;
 using EventDrivenThinking.Reflection;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -21,7 +22,7 @@ namespace EventDrivenThinking.EventInference.EventStore
     {
         
         
-        public static IEventStoreConnection BindToSignalHub(this IEventStoreConnection connection,
+        public static IEventStoreFacade BindToSignalHub(this IEventStoreFacade connection,
             IProjectionSchemaRegister projectionSchema,
             IHubContext<EventStoreHub> hubConnection, Serilog.ILogger logger)
         {
@@ -45,16 +46,17 @@ namespace EventDrivenThinking.EventInference.EventStore
             private IHubContext<EventStoreHub> _connection;
             private Serilog.ILogger _logger;
 
-            public void Configure(IEventStoreConnection connection,
+            public void Configure(IEventStoreFacade connection,
                 IHubContext<EventStoreHub> hubConnection, Serilog.ILogger logger)
             {
                 _logger = logger;
                 _logger.Information("Subscribed for {eventName} for pushing to signalR clients.", typeof(TEvent).Name);
                 var stream = $"$et-{typeof(TEvent).Name}";
                 this._connection = hubConnection;
-                connection.SubscribeToStreamAsync(stream, true, OnReadEvent).GetAwaiter().GetResult();
+                var t = Task.Run(() => connection.SubscribeToStreamAsync(stream, OnReadEvent, true));
+                t.Wait();
             }
-            private async Task OnReadEvent(EventStoreSubscription arg1, ResolvedEvent arg2)
+            private async Task OnReadEvent(IStreamSubscription arg1, ResolvedEvent arg2, CancellationToken t)
             {
                 var eventData = Encoding.UTF8.GetString(arg2.Event.Data);
                 var metaData = Encoding.UTF8.GetString(arg2.Event.Metadata);
@@ -62,7 +64,6 @@ namespace EventDrivenThinking.EventInference.EventStore
                 var ev = JsonConvert.DeserializeObject<TEvent>(eventData);
                 var m = JsonConvert.DeserializeObject<EventMetadata>(metaData);
 
-                
                 var groupName = typeof(TEvent).FullName.Replace(".","-");
                 try
                 {
@@ -78,7 +79,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         private interface ISignalRConfigurator
         {
-            void Configure(IEventStoreConnection aggregator, IHubContext<EventStoreHub> hubConnection, Serilog.ILogger logger);
+            void Configure(IEventStoreFacade aggregator, IHubContext<EventStoreHub> hubConnection, Serilog.ILogger logger);
 
         }
         

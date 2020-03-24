@@ -40,17 +40,36 @@ namespace EventDrivenThinking.EventInference.InMemory
                 yield return i.Event;
         }
 
-        public async Task<EventEnvelope[]> Append(Guid key, long version, Guid correlationId, IEnumerable<IEvent> published)
+        public async Task<EventEnvelope[]> Append(Guid key, Guid correlationId,
+            IEnumerable<IEvent> published)
         {
             var list = _streams.GetOrAdd(key, k => new List<EventEnvelope>());
-            int i = 0;
+            uint i = 0;
+            var result = published.Select(e =>
+                    new EventEnvelope(e, _metadataFactory.Create(key, correlationId, e, 0)))
+                .ToArray();
+
+           
+            LogEvents(key, 0, result);
+            foreach (var e in result)
+            {
+                var invoker = Ctor<IInvoker>.Create(typeof(Invoker<>).MakeGenericType(typeof(TAggregate), e.Event.GetType()));
+                invoker.Invoke(_eventAggregator, e.Metadata, e.Event);
+            }
+
+            return result;
+        }
+        public async Task<EventEnvelope[]> Append(Guid key, ulong version, Guid correlationId, IEnumerable<IEvent> published)
+        {
+            var list = _streams.GetOrAdd(key, k => new List<EventEnvelope>());
+            uint i = 0;
             var result = published.Select(e =>
                 new EventEnvelope(e, _metadataFactory.Create(key,correlationId,e, version+i++)))
                 .ToArray();
 
             lock (list)
             {
-                if (list.Count == (version+1))
+                if ((uint)list.Count == (version+1))
                     list.AddRange(result);
                 else throw new OptimisticConcurrencyException();
             }
@@ -64,10 +83,10 @@ namespace EventDrivenThinking.EventInference.InMemory
             return result;
         }
 
-        private void LogEvents(Guid key, long version, EventEnvelope[] result)
+        private void LogEvents(Guid key, ulong version, EventEnvelope[] result)
         {
             if (_logger.IsEnabled(LogEventLevel.Debug))
-                for (var index = 0; index < result.Length; index++)
+                for (ulong index = 0; index < (ulong)result.Length; index++)
                 {
                     var i = result[index];
                     _logger.Debug("{aggregateName}-{id}@{version}\t{eventName}\t{data}",

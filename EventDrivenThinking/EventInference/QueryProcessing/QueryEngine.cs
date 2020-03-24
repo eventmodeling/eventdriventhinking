@@ -169,9 +169,10 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
                     _partitions.TryAdd(partitionId.Value, streamInfo);
 
                     subscriptionReady.Wait();
-                    //await subscriptionReady.WaitAsync();
+                    Debug.WriteLine("Waiting for projection to kick in...");
+                    Thread.Sleep(2000);
                 }
-                //Thread.Sleep(2000);
+                
                 // we have subscribed to partition before. Just need to return result and execute the handler.
                 var handler = _serviceProvider.GetService<IQueryHandler<TQuery, TModel, TResult>>();
                 var result = handler.Execute(CreateOrGet(), query);
@@ -179,6 +180,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
 
                 streamInfo.AssociatedQueries.TryAdd(liveQuery.Query, liveQuery);
                 _liveQueries.TryAdd(liveQuery.Query, liveQuery);
+                
             }
             else
             {

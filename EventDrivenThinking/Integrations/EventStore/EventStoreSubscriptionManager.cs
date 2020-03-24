@@ -4,10 +4,11 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Newtonsoft.Json;
 
 namespace EventDrivenThinking.Integrations.EventStore
@@ -17,24 +18,23 @@ namespace EventDrivenThinking.Integrations.EventStore
         class Subscription : ISubscription
         {
             public string StreamName { get; }
-            private EventStoreCatchUpSubscription _eventStoreSubscription;
+            private IStreamSubscription _eventStoreSubscription;
 
             public Subscription(string streamName)
             {
                 StreamName = streamName;
             }
 
-            public bool IsLive { get; set; }
 
-            public void Initialized(EventStoreCatchUpSubscription s)
+            public void Initialized(IStreamSubscription s)
             {
                 _eventStoreSubscription = s;
             }
         }
-        private IEventStoreConnection _connection;
+        private IEventStoreFacade _connection;
         private IProjectionSchema _schema;
 
-        public EventStoreModelProjectionSubscriber(IEventStoreConnection connection, IProjectionSchemaRegister projectionSchemaRegister)
+        public EventStoreModelProjectionSubscriber(IEventStoreFacade connection, IProjectionSchemaRegister projectionSchemaRegister)
         {
             _connection = connection;
             _schema = projectionSchemaRegister.FindByModelType(typeof(TModel));
@@ -42,8 +42,8 @@ namespace EventDrivenThinking.Integrations.EventStore
 
 
         public async Task<ISubscription> SubscribeToStream(
-            Func<(EventMetadata, IEvent)[], Task> onEvents, 
-            Action<ISubscription> liveProcessingStarted,
+            Func<(EventMetadata, IEvent)[], Task> onEvents,
+            Action<ISubscription> onLiveStarted = null,
             Guid? partitionId = null,
             long? location = null)
         {
@@ -52,21 +52,21 @@ namespace EventDrivenThinking.Integrations.EventStore
                 streamName += $"Partition-{partitionId}";
 
             Subscription s = new Subscription(streamName);
-            //Dictionary<string, Type> _eventTypeDict = expectedEventTypes.ToDictionary(x => x.Name);
-            var subscription = _connection.SubscribeToStreamFrom(streamName, location, CatchUpSubscriptionSettings.Default,
-                async (subscription, e) =>
+            
+            
+            var subscription = await _connection.SubscribeToStreamAsync(streamName,  
+                StreamRevision.Start, 
+                async (subscription, e,ea) =>
                 {
                     var eventString = Encoding.UTF8.GetString(e.Event.Data);
                     var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
                     var eventType = _schema.EventByName(e.Event.EventType);
                     var eventInstance = (IEvent)JsonConvert.DeserializeObject(eventString, eventType);
                     await onEvents(new (EventMetadata, IEvent)[] {(em, eventInstance)});
-                },
-                subscription =>
-                {
-                    s.IsLive = true;
-                    liveProcessingStarted(s);
-                });
+                },sc => onLiveStarted?.Invoke(s),
+                true);
+
+
             s.Initialized(subscription);
 
             return s;

@@ -4,18 +4,18 @@ using System.Text;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Newtonsoft.Json;
 
 namespace EventDrivenThinking.EventInference.EventStore
 {
     public interface IEventMetadataFactory<TAggregate>
     {
-        EventMetadata Create(Guid key, Guid correlationId, IEvent ev, long version);
+        EventMetadata Create(Guid key, Guid correlationId, IEvent ev, ulong version = 0);
     }
     public sealed class EventMetadataFactory<TAggregate> : IEventMetadataFactory<TAggregate>
     {
-        public EventMetadata Create(Guid key, Guid correlationId, IEvent ev, long version)
+        public EventMetadata Create(Guid key, Guid correlationId, IEvent ev, ulong version )
         {
             var em = new EventMetadata(key, typeof(TAggregate), correlationId, version);
             return em;
@@ -33,7 +33,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 
             
             var evTypeName = evName(ev.GetType());
-            return new EventData(ev.Id, evTypeName, true, evData, evMeta);
+            return new EventData(Uuid.FromGuid(ev.Id), evTypeName, evData, evMeta);
         }
         public EventData Create(EventMetadata em, IEvent ev)
         {
@@ -52,7 +52,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 
             Debug.WriteLine($"Creating a link {content}");
 
-            return new EventData(Guid.NewGuid(), "$>", false, contentBytes, metadataBytes);
+            return new EventData(Uuid.NewUuid(), "$>", contentBytes, metadataBytes);
             //return new EventData(ev.Id, "$>", false, contentBytes, metadataBytes);
         }
 

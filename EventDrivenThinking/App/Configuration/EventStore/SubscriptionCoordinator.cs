@@ -4,20 +4,23 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Nito.AsyncEx;
+using EventTypeFilter = EventStore.Client.EventTypeFilter;
 using ILogger = Serilog.ILogger;
 
 namespace EventDrivenThinking.App.Configuration.EventStore
 {
     interface IStreamReceiver
     {
-        Task Subscribe(IEventStoreConnection connection);
+        Task Subscribe(IEventStoreFacade connection);
         
     }
 
@@ -25,13 +28,13 @@ namespace EventDrivenThinking.App.Configuration.EventStore
     {
         private readonly string _streamName;
         private readonly StreamJoinCoordinator _coordinator;
-        private long? _lastCheckpoint;
+        private ulong? _lastCheckpoint;
         private readonly int _number;
         private readonly ICheckpointEventRepository<TEvent> _checkpointRepo;
-        private readonly CatchUpSubscriptionSettings _settings;
-        private EventStoreStreamCatchUpSubscription Subscription { get; set; }
+        
+        private IStreamSubscription Subscription { get; set; }
         private int _reconnectionCounter = 0;
-        private IEventStoreConnection _connection;
+        private IEventStoreFacade _connection;
 
         public StreamEventReceiver(StreamJoinCoordinator coordinator, string streamName, int number, ICheckpointEventRepository<TEvent> checkpointRepo)
         {
@@ -39,34 +42,35 @@ namespace EventDrivenThinking.App.Configuration.EventStore
             _coordinator = coordinator;
             _number = number;
             _checkpointRepo = checkpointRepo;
-            _settings = new CatchUpSubscriptionSettings(1024, 1024, false, true, coordinator.SubscriptionName);
+            
         }
 
-        public async Task Subscribe(IEventStoreConnection connection)
+        public async Task Subscribe(IEventStoreFacade connection)
         {
             _connection = connection;
             _lastCheckpoint = await _checkpointRepo.GetLastCheckpoint();
             Debug.WriteLine($"Subscribing steam: {_streamName} from {_lastCheckpoint?.ToString() ?? "beginning"}");
-            this.Subscription = _connection.SubscribeToStreamFrom(_streamName,
-                _lastCheckpoint,
-                _settings,
+            this.Subscription = await _connection.SubscribeToStreamAsync(_streamName,
+                new StreamRevision(_lastCheckpoint ?? 0L),
                 OnEventAppeared,
-                OnLiveProcessingStarted, OnSubscriptionDropped);
+                OnLiveProcessingStarted,
+                true,
+                OnSubscriptionDropped);
         }
 
-        private void OnSubscriptionDropped(EventStoreCatchUpSubscription arg1, SubscriptionDropReason arg2, Exception arg3)
+        private void OnSubscriptionDropped(IStreamSubscription arg1, SubscriptionDroppedReason arg2, Exception arg3)
         {
             //throw new NotImplementedException("We need to implement reconnect.");
             Debug.WriteLine($"Subscription was dropped {_streamName} (reason = {arg2}, Exception = {arg3}), reconnecting.");
             _reconnectionCounter += 1;
         }
 
-        private void OnLiveProcessingStarted(EventStoreCatchUpSubscription obj)
+        private void OnLiveProcessingStarted(IStreamSubscription obj)
         {
             _coordinator.ReceiverIsLive(_number);
         }
 
-        private async Task OnEventAppeared(EventStoreCatchUpSubscription arg1, ResolvedEvent arg2)
+        private async Task OnEventAppeared(IStreamSubscription arg1, ResolvedEvent arg2, CancellationToken t)
         {
             var eventData = Encoding.UTF8.GetString(arg2.Event.Data);
             var metaData = Encoding.UTF8.GetString(arg2.Event.Metadata);
@@ -105,7 +109,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
 
         private ILogger _logger;
         private readonly IServiceProvider _serviceProvider;
-        private readonly IEventStoreConnection _connection;
+        private readonly IEventStoreFacade _connection;
         
 
         public int Count => _buffer.Count;
@@ -117,7 +121,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         private int _readyPastCatchupReceivers;
         private DateTimeOffset _lastDispatchedEventTime;
 
-        public StreamJoinCoordinator(IEventStoreConnection connection,  
+        public StreamJoinCoordinator(IEventStoreFacade connection,  
             Serilog.ILogger logger, IServiceProvider serviceProvider)
         {
             this._connection = connection;
@@ -223,6 +227,9 @@ namespace EventDrivenThinking.App.Configuration.EventStore
                     }
                 }
         }
+
+       
+
         public async Task SubscribeToStreams(params SubscriptionInfo[] eventTypes)
         {
             // Load each event in each stream to buffer.
@@ -257,20 +264,20 @@ namespace EventDrivenThinking.App.Configuration.EventStore
     }
     public class NullCheckpointRepository<TOwner, TEvent> : ICheckpointRepository<TOwner, TEvent>
     {
-        public Task<long?> GetLastCheckpoint()
+        public Task<ulong?> GetLastCheckpoint()
         {
-            return Task.FromResult((long?)null);
+            return Task.FromResult((ulong?)null);
         }
 
-        public Task SaveCheckpoint(long checkpoint)
+        public Task SaveCheckpoint(ulong checkpoint)
         {
             return Task.CompletedTask;
         }
     }
     public interface ICheckpointEventRepository<TEvent>
     {
-        Task<long?> GetLastCheckpoint();
-        Task SaveCheckpoint(long checkpoint);
+        Task<ulong?> GetLastCheckpoint();
+        Task SaveCheckpoint(ulong checkpoint);
     }
     public interface ICheckpointRepository<TOwner, TEvent> : ICheckpointEventRepository<TEvent>
     {
@@ -304,21 +311,21 @@ namespace EventDrivenThinking.App.Configuration.EventStore
             this.fileName = Path.Combine(FileCheckpointConfig.Path,
                 $"{typeof(TOwner).Name}_{typeof(TEvent).Name}.chk");
         }
-        public async Task<long?> GetLastCheckpoint()
+        public async Task<ulong?> GetLastCheckpoint()
         {
             byte[] buffer = new byte[8];
             
             using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Read, FileShare.Read, 8))
             {
                 if(await fs.ReadAsync(buffer, 0, 8) == 8)
-                    return BitConverter.ToInt64(buffer, 0);
+                    return BitConverter.ToUInt64(buffer, 0);
             }
 
             return null;
 
         }
 
-        public async Task SaveCheckpoint(long checkpoint)
+        public async Task SaveCheckpoint(ulong checkpoint)
         {
             using (FileStream fs = new FileStream(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.Write, 8))
             {

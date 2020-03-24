@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
@@ -35,11 +36,12 @@ namespace EventDrivenThinking.EventInference.CommandHandlers
 
         public async Task When(Guid id, TCommand cmd)
         {
+            Debug.WriteLine($"Invoking a command on an aggregate: {cmd.GetType().Name}");
             var events = _eventStream.Get(id);
             var aggregate = new TAggregate { Id = id };
 
             await aggregate.RehydrateAsync(events);
-            var version = aggregate.Version;
+            var version = aggregate.IsInitialized ? aggregate.Version : 0;
 
             var published = aggregate.Execute(cmd);
 

@@ -37,15 +37,30 @@ namespace EventDrivenThinking.Tests.Common
                 .Init(Dictionary.QuerySchemaRegister);
         }
         [Then(@"I get query results:")]
-        public void ThenIGetQueryResults(Table table)
+        public async Task ThenIGetQueryResults(Table table)
         {
             Debug.WriteLine("Waiting.......");
-            Thread.Sleep(100);
+            
             var lastResult = _specificationExecutor.GetQueryResults().Last();
             var resultType = lastResult.Result.GetType();
             var deserialized = table.Deserialize(resultType);
+            DateTime deadline = DateTime.Now.AddSeconds(10);
+            Exception inner = null;
+            while (DateTime.Now < deadline)
+            {
+                try
+                {
+                    lastResult.Result.Should().BeEquivalentTo(deserialized);
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    inner = ex;
+                    await Task.Delay(200);
+                }
+            }
 
-            lastResult.Result.Should().BeEquivalentTo(deserialized);
+            if (inner != null) throw inner;
         }
 
 
@@ -193,8 +208,9 @@ namespace EventDrivenThinking.Tests.Common
         [Then(@"I expect (.*)")]
         public async Task ThenIExpectThat(string eventName, Table propertyTable)
         {
+            await Task.Delay(1000);
             var evType = Dictionary.FindEvent(eventName);
-            var (lastAggregateId, lastEvent) = await _specificationExecutor.GetEmittedEvents().LastOrDefault();
+            var (lastAggregateId, lastEvent) = await _specificationExecutor.FindLestEvent(evType);
             var ev = GetArgument<IEvent>(evType, lastEvent.Id, propertyTable);
 
             lastEvent.BeEquivalentTo(ev);

@@ -1,6 +1,6 @@
 ﻿using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Schema;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Microsoft.AspNetCore.SignalR;
 using ILogger = Serilog.ILogger;
 
@@ -12,12 +12,12 @@ namespace EventDrivenThinking.Integrations.SignalR
     }
     public class EventStoreHubInitializer : IEventStoreHubInitializer
     {
-        private readonly IEventStoreConnection _connection;
+        private readonly IEventStoreFacade _connection;
         private readonly IHubContext<EventStoreHub> _hubConnection;
         private readonly ILogger _logger;
         private readonly IProjectionSchemaRegister _projectionSchema;
 
-        public EventStoreHubInitializer(IEventStoreConnection connection, 
+        public EventStoreHubInitializer(IEventStoreFacade connection, 
             IHubContext<EventStoreHub> hubConnection, ILogger logger,
             IProjectionSchemaRegister projectionSchema)
         {

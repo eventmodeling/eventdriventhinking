@@ -1,4 +1,4 @@
-﻿using EventStore.ClientAPI.SystemData;
+﻿using EventStore.Client;
 
 namespace EventDrivenThinking.EventInference.EventStore
 {

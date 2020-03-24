@@ -5,8 +5,8 @@ using System.Linq;
 using System.Net;
 using System.Net.Http;
 using System.Reflection;
-using System.ServiceModel.Security;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Docker.DotNet;
 using Docker.DotNet.Models;
@@ -24,11 +24,9 @@ using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Example.Model.ReadModels.Hotel;
 using EventDrivenThinking.Integrations.Unity;
 using EventDrivenThinking.Reflection;
-using EventStore.ClientAPI;
-using EventStore.ClientAPI.Common.Log;
+using EventStore.Client;
 using EventStore.ClientAPI.Embedded;
-using EventStore.ClientAPI.Projections;
-using EventStore.ClientAPI.SystemData;
+using EventStore.Common.Options;
 using EventStore.Core;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
@@ -45,6 +43,35 @@ namespace EventDrivenThinking.Tests.Common
     {
         Given, When, Then
     }
+
+    public class EventStoreServer
+    {
+        private ClusterVNode node;
+        public static EventStoreServer Instance = new EventStoreServer();
+        private EventStoreServer() { }
+        public async Task Start()
+        {
+            var nodeBuilder = EmbeddedVNodeBuilder.AsSingleNode()
+                .OnDefaultEndpoints()
+                //.WithServerCertificate(null)
+                .RunProjections(ProjectionType.System)
+                .RunInMemory();
+            this.node = nodeBuilder.Build();
+
+            await node.StartAsync(true);
+        }
+
+        public async Task Restart()
+        {
+            await Stop();
+            await Start();
+        }
+        public async Task Stop()
+        {
+            node?.StopAsync();
+        }
+    }
+
     public class AppSpecificationExecutor : ISpecificationExecutor
     {
         class ClientApp
@@ -77,8 +104,8 @@ namespace EventDrivenThinking.Tests.Common
             if (!_init)
             {
                 _init = true;
-                //StartEventStore();
-                await StartEventStoreInDocker();
+                //await EventStoreServer.Instance.Start();
+                //await StartEventStoreInDocker();
                 await StartWebServer();
                 await StartEventStoreProjections();
 
@@ -132,13 +159,8 @@ namespace EventDrivenThinking.Tests.Common
 
         private async Task StartEventStoreProjections()
         {
-            var httpMessageHandler = new HttpClientHandler();
-            ProjectionsManager pm = new ProjectionsManager(new ConsoleLogger(),
-                new DnsEndPoint("localhost", 2113), TimeSpan.FromSeconds(5), httpMessageHandler);
-            var userCredentials = new UserCredentials("admin", "changeit");
-            var projections = await pm.ListAllAsync(userCredentials);
-            var toEnable = projections.Select(p => pm.EnableAsync(p.Name, userCredentials)).ToArray();
-            Task.WaitAll(toEnable);
+            var connection = await GetEventStoreConnection();
+            await connection.ProjectionsManager.EnableAll();
         }
         private async Task StartEventStoreInDocker()
         {
@@ -185,16 +207,7 @@ namespace EventDrivenThinking.Tests.Common
 
             await this._host.StartAsync();
         }
-        internal void StartEventStore()
-        {
-            var nodeBuilder = EmbeddedVNodeBuilder.AsSingleNode()
-                .OnDefaultEndpoints()
-                
-                .RunInMemory();
-            this.node = nodeBuilder.Build();
-            node.Start();
-        }
-
+        
         private IAggregateSchemaRegister _aggregateSchemaRegister;
 
         private IAggregateSchemaRegister GetAggregateSchema()
@@ -242,13 +255,26 @@ namespace EventDrivenThinking.Tests.Common
         {
             await Task.Delay(200);
             _currentMode = ExecutorMode.Then;
-            foreach (var i in _frames.Pop().Events)
+            foreach (var i in _frames.Peek().Events)
                 yield return i;
+        }
+        public async Task<(Guid, IEvent)> FindLestEvent(Type eventType)
+        {
+            await Task.Delay(200);
+            _currentMode = ExecutorMode.Then;
+            foreach (var frame in _frames.ToArray().Reverse())
+            foreach (var ev in frame.Events)
+            {
+                if (ev.Item2.GetType() == eventType)
+                    return ev;
+            }
+
+            return (Guid.Empty, null);
         }
 
         private bool TryGetEvent(ResolvedEvent e, out (Guid, IEvent) ev)
         {
-            if (e.IsResolved && e.Event.IsJson)
+            if (e.Event.ContentType == "application/json" && !e.Event.EventStreamId.StartsWith("$"))
             {
                 Tuple<Guid, IEvent> result = null;
                 try
@@ -353,30 +379,42 @@ namespace EventDrivenThinking.Tests.Common
         
        
 
-        private IEventStoreConnection _connection;
-        private async Task<IEventStoreConnection> GetEventStoreConnection()
+        private IEventStoreFacade _connection;
+        private async Task<IEventStoreFacade> GetEventStoreConnection()
         {
             if (_connection == null)
             {
-                _connection = EventStoreConnection.Create(new Uri("tcp://admin:changeit@localhost:1113"));
-                await _connection.ConnectAsync();
-                await _connection.SubscribeToAllAsync(true, OnEventAppended, null, null);
+                
+                _connection = new EventStoreFacade("https://localhost:2113", "tcp://localhost:1113","admin","changeit");
+                //_connection = new HttpEventStoreClient("tcp://localhost:1113", "admin", "changeit");
+                await _connection.SubscribeToAllAsync(OnEventAppended, true);
             }
 
             return _connection;
         }
 
-        private Stack<StackFrame> _frames;
-        private async Task OnEventAppended(EventStoreSubscription subscription, ResolvedEvent ev)
+        private Task OnEventAppended(IStreamSubscription arg1, ResolvedEvent ev, CancellationToken arg3)
         {
+            if (ev.Link != null || ev.OriginalEvent.EventStreamId.StartsWith("$"))
+            {
+                return Task.CompletedTask;
+            }
+
             if (TryGetEvent(ev, out (Guid, IEvent) e))
             {
+                
                 var stackFrame = _frames.Peek();
-                if(_currentMode != stackFrame.Mode)
+                if (_currentMode != stackFrame.Mode)
                     _frames.Push(new StackFrame(_currentMode));
                 stackFrame.Events.Push(e);
+                Debug.WriteLine($"Saving events for frame: {e.Item2.Id}");
             }
+
+            return Task.CompletedTask;
         }
+
+        private Stack<StackFrame> _frames;
+        
 
         private async Task AppendSpecificFact<TAggregate, TEvent>(
             Guid aggregateId, 
@@ -391,7 +429,7 @@ namespace EventDrivenThinking.Tests.Common
                 await GetEventStoreConnection(), 
                 new EventDataFactory(), new EventMetadataFactory<TAggregate>(), schema, Logger.None);
 
-            await stream.Append(aggregateId, ExpectedVersion.Any, Guid.NewGuid(), ev);
+            await stream.Append(aggregateId, Guid.NewGuid(), ev);
         }
 
         public void Dispose()

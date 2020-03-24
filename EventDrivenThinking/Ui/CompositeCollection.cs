@@ -6,7 +6,6 @@ using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using EventDrivenThinking.Utils;
-using ProtoBuf;
 
 namespace EventDrivenThinking.Ui
 {

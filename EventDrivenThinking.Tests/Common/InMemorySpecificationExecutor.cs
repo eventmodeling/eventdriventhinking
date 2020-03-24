@@ -23,6 +23,8 @@ namespace EventDrivenThinking.Tests.Common
         ISpecificationExecutor Init(IQuerySchemaRegister querySchemaRegister);
 
         IAsyncEnumerable<(Guid, IEvent)> GetEmittedEvents();
+        Task<(Guid, IEvent)> FindLestEvent(Type eventType);
+
         Task ExecuteCommand(IClientCommandSchema metadata, Guid aggregateId, ICommand cmd);
         Task AppendFact(Guid aggregateId, IEvent ev);
         Task<ILiveResult> ExecuteQuery(IQuery query);
@@ -70,7 +72,13 @@ namespace EventDrivenThinking.Tests.Common
             this._querySchemaRegister = querySchemaRegister;
             return this;
         }
-
+        public async Task<(Guid, IEvent)> FindLestEvent(Type eventType)
+        {
+            return _emittedEvents
+                .Where(x=>x.Item2.GetType() == eventType)
+                .Reverse()
+                .FirstOrDefault();
+        }
         public async IAsyncEnumerable<(Guid, IEvent)> GetEmittedEvents()
         {
             foreach (var i in _emittedEvents)
@@ -103,7 +111,7 @@ namespace EventDrivenThinking.Tests.Common
                     {
                         await p.projection.Execute(new (EventMetadata, IEvent)[]
                         {
-                            (new EventMetadata(i.aggregateId, null, Guid.NewGuid(), -1),
+                            (new EventMetadata(i.aggregateId, null, Guid.NewGuid(), 0),
                                 i.ev)
                         });
 
@@ -200,7 +208,7 @@ namespace EventDrivenThinking.Tests.Common
 
             var rightEvents = projectionSchema.Events.ToHashSet();
             var eventsToProject = _eventsInPast.Where(x => rightEvents.Contains(x.Item2.GetType()))
-                .Select(x => (new EventMetadata(x.Item1, null, Guid.NewGuid(), -1), x.Item2));
+                .Select(x => (new EventMetadata(x.Item1, null, Guid.NewGuid(), 0), x.Item2));
 
             await projection.Execute(eventsToProject);
 

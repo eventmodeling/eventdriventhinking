@@ -9,7 +9,7 @@ using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.Reflection;
 using EventDrivenThinking.Ui;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Microsoft.AspNetCore.SignalR.Client;
 using ILogger = Serilog.ILogger;
 using StreamPosition = EventDrivenThinking.Integrations.SignalR.StreamPosition;

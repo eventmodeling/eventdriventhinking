@@ -1,7 +1,7 @@
 ﻿using System;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
-using EventStore.ClientAPI;
+using EventStore.Client;
 
 namespace EventDrivenThinking.EventInference.EventStore
 {
@@ -12,4 +12,5 @@ namespace EventDrivenThinking.EventInference.EventStore
         EventData CreateLink(EventMetadata em, IEvent ev, Type projectionType, Guid projectionVersion);
         EventData Create(EventEnvelope ev);
     }
+
 }

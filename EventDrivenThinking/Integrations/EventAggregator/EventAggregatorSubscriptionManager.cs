@@ -79,7 +79,7 @@ namespace EventDrivenThinking.Integrations.EventAggregator
         }
 
 
-        public Task<ISubscription> SubscribeToStream(Func<(EventMetadata, IEvent)[], Task> onEvents, Action<ISubscription> liveProcessingStarted, Guid? partitionId = null, long? location = null)
+        public Task<ISubscription> SubscribeToStream(Func<(EventMetadata, IEvent)[], Task> onEvents, Action<ISubscription> onLiveStarted = null, Guid? partitionId = null, long? location = null)
         {
             throw new NotImplementedException();
         }

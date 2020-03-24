@@ -1,5 +1,6 @@
 ﻿using System;
 using System.ComponentModel;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Text.Json.Serialization;
@@ -11,8 +12,11 @@ using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Example.Model.ReadModels.Hotel;
 using EventDrivenThinking.Integrations.Unity;
+using EventDrivenThinking.Tests.Common;
 using EventDrivenThinking.Utils;
+using EventStore.Client;
 using EventStore.ClientAPI;
+using EventStore.ClientAPI.SystemData;
 using EventStore.Common.Utils;
 using FluentAssertions;
 using Io.Cucumber.Messages;
@@ -22,6 +26,10 @@ using Serilog.Core;
 using Unity;
 using Xunit;
 using Xunit.Abstractions;
+using EventData = EventStore.Client.EventData;
+using Position = EventStore.ClientAPI.Position;
+using UserCredentials = EventStore.ClientAPI.SystemData.UserCredentials;
+
 
 namespace EventDrivenThinking.Tests.Integration
 {
@@ -36,11 +44,33 @@ namespace EventDrivenThinking.Tests.Integration
         }
 
         [Fact]
+        public async Task CanConnect()
+        {
+            Type t = typeof(ProtoBuf.BclHelpers);
+            ConnectionSettings settings = ConnectionSettings.Create().UseSslConnection(false)
+                //.UseDebugLogger()
+                .EnableVerboseLogging()
+                .KeepRetrying()
+                //.SetHeartbeatTimeout(TimeSpan.FromSeconds(30))
+                .SetDefaultUserCredentials(new UserCredentials("admin","changeit"))
+                .Build();
+            
+            var connection = EventStoreConnection.Create(settings, new Uri("tcp://localhost:1113"));
+            //var connection = EventStoreConnection.Create(new Uri("tcp://admin:changeit@localhost:1113"));
+
+            await connection.ConnectAsync();
+            var result = await connection.ReadAllEventsForwardAsync(Position.Start, 10, true);
+
+        }
+
+        [Fact]
         public async Task LinksCanBeCreated()
         {
+            //await EventStoreServer.Instance.Start();
+
             var connection = await Connect();
 
-            
+            string projectionStreamName =$"Projection-{Guid.NewGuid()}" ;
             string streamName = $"Foo-{Guid.NewGuid().ToString()}";
             RoomAdded eventObj = null;
 
@@ -49,19 +79,23 @@ namespace EventDrivenThinking.Tests.Integration
                 eventObj = new RoomAdded() { Number = "101" };
 
                 var metadata = new EventMetadata(Guid.NewGuid(), typeof(HotelAggregate), Guid.NewGuid(), 0);
-                var result = await connection.AppendToStreamAsync(streamName, ExpectedVersion.Any,
-                    new EventData(Guid.NewGuid(), "RoomAdded", true, eventObj.ToJsonBytes(), metadata.ToJsonBytes()));
+                var eventData = new EventData(Uuid.NewUuid(), "RoomAdded",  eventObj.ToJsonBytes(), metadata.ToJsonBytes());
+                var result = await connection.AppendToStreamAsync(streamName, AnyStreamRevision.Any, 
+                    new []{eventData});
 
-                var linkData = new EventData(Guid.NewGuid(), "$>", false, Encoding.UTF8.GetBytes($"{i}@{streamName}"), null);
+                var linkData = new EventData(Uuid.NewUuid(), "$>", Encoding.UTF8.GetBytes($"{i}@{streamName}"), null);
 
-                var projectionStream =
-                    await connection.AppendToStreamAsync("projection", ExpectedVersion.Any, linkData);
-
-             
+                var projectionStream = await connection.AppendToStreamAsync(projectionStreamName, AnyStreamRevision.Any, new []{ linkData});
+                
             }
-            var readProjection = await connection.ReadStreamEventsForwardAsync("projection", 0, 20, true);
-            var data = readProjection.Events.Last().Event.Data.FromJsonBytes<RoomAdded>();
-            data.Should().BeEquivalentTo(eventObj);
+
+            await foreach (var e in connection.ReadStreamAsync(Direction.Backwards, projectionStreamName,
+                StreamRevision.Start, 20, resolveLinkTos:true))
+            {
+                var data = e.Event.Data.FromJsonBytes<RoomAdded>();
+                data.Number.Should().Be(eventObj.Number);
+                break;
+            }
         }
 
         [Fact]
@@ -120,8 +154,8 @@ namespace EventDrivenThinking.Tests.Integration
         private async Task Cleanup()
         {
             var connection = await Connect();
-            await connection.DeleteStreamAsync($"$et-{nameof(RoomBooked)}",ExpectedVersion.Any);
-            await connection.DeleteStreamAsync($"$et-{nameof(RoomAdded)}", ExpectedVersion.Any);
+            //await connection.DeleteStreamAsync($"$et-{nameof(RoomBooked)}",ExpectedVersion.Any);
+            //await connection.DeleteStreamAsync($"$et-{nameof(RoomAdded)}", ExpectedVersion.Any);
         }
 
         private static async Task AppendEvent(Guid aggregateId)
@@ -130,10 +164,11 @@ namespace EventDrivenThinking.Tests.Integration
             schemaRegister.Discover(typeof(EventStoreIntegrationTests).Assembly);
 
             var stream = GetStream(await Connect(), new AggregateSchema<HotelAggregate>(schemaRegister.Get(typeof(HotelAggregate))));
-            await stream.Append(aggregateId, ExpectedVersion.Any,Guid.NewGuid(),new RoomAdded() {Number = "101"});
+            //await stream.Append(aggregateId, ExpectedVersion.Any,Guid.NewGuid(),new RoomAdded() {Number = "101"});
+            throw new NotImplementedException();
         }
 
-        private static AggregateEventStream<HotelAggregate> GetStream(IEventStoreConnection connection, 
+        private static AggregateEventStream<HotelAggregate> GetStream(IEventStoreFacade connection, 
             IAggregateSchema<HotelAggregate> schema)
         {
             AggregateEventStream<HotelAggregate> stream = new AggregateEventStream<HotelAggregate>(connection,
@@ -141,11 +176,15 @@ namespace EventDrivenThinking.Tests.Integration
             return stream;
         }
 
-        private static async Task<IEventStoreConnection> Connect()
+        private static async Task<IEventStoreFacade> Connect()
         {
-            IEventStoreConnection connection = EventStoreConnection.Create(new Uri("tcp://admin:changeit@localhost:1113"));
-            await connection.ConnectAsync();
-            return connection;
+            var client = new EventStoreFacade("https://localhost:2113", "tcp://localhost:1113", "admin", "changeit");
+
+
+            return client;
+            //IHttpEventStoreClient connection = EventStoreConnection.Create(new Uri("tcp://admin:changeit@localhost:1113"));
+            //await connection.ConnectAsync();
+            //return connection;
         }
     }
 }

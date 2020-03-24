@@ -13,6 +13,7 @@ namespace EventDrivenThinking.EventInference.EventStore
         IAsyncEnumerable<IEvent> Get(Guid key);
         
         //TODO: Need to add version here
-        Task<EventEnvelope[]> Append(Guid key, long version, Guid correlationId, IEnumerable<IEvent> published);
+        Task<EventEnvelope[]> Append(Guid key, ulong version, Guid correlationId, IEnumerable<IEvent> published);
+        Task<EventEnvelope[]> Append(Guid key, Guid correlationId, IEnumerable<IEvent> published);
     }
 }

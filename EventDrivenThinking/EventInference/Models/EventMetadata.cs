@@ -25,7 +25,7 @@ namespace EventDrivenThinking.EventInference.Models
         {
             
         }
-        public EventMetadata(Guid aggregateId, Type aggregateType, Guid correlationId, long version)
+        public EventMetadata(Guid aggregateId, Type aggregateType, Guid correlationId, ulong version)
         {
             AggregateId = aggregateId;
             AggregateType = aggregateType;
@@ -53,7 +53,7 @@ namespace EventDrivenThinking.EventInference.Models
        
         //[JsonProperty("v")]
         [JsonIgnore]
-        public long Version { get; set; }
+        public ulong Version { get; set; }
 
     }
 }

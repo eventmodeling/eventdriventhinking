@@ -10,7 +10,7 @@ using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Utils;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using Newtonsoft.Json;
 using ILogger = Serilog.ILogger;
 
@@ -30,7 +30,7 @@ namespace EventDrivenThinking.EventInference.EventStore
     public class ProjectionEventStream<TProjection> : IProjectionEventStream<TProjection>
         where TProjection : IProjection
     {
-        private readonly IEventStoreConnection _connection;
+        private readonly IEventStoreFacade _connection;
         private readonly IEventDataFactory _eventDataFactory;
         private readonly ILogger _logger;
         private readonly string _projectionStreamName;
@@ -39,7 +39,7 @@ namespace EventDrivenThinking.EventInference.EventStore
         private static readonly Guid _projectionId = typeof(TProjection).FullName.ToGuid();
 
         private IProjectionSchema<TProjection> _projectionSchema;
-        public ProjectionEventStream(IEventStoreConnection connection, IEventDataFactory eventDataFactory, ILogger logger, IProjectionSchema<TProjection> projectionSchema)
+        public ProjectionEventStream(IEventStoreFacade connection, IEventDataFactory eventDataFactory, ILogger logger, IProjectionSchema<TProjection> projectionSchema)
         {
             _connection = connection;
             _eventDataFactory = eventDataFactory;
@@ -60,39 +60,28 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         public async IAsyncEnumerable<EventEnvelope> Get(Guid key)
         {
-            StreamEventsSlice slice = null;
-            do
-            {
-                slice = await _connection.ReadStreamEventsForwardAsync(GetPartitionStreamName(key), StreamPosition.Start, 100, true);
-                foreach (var e in slice.Events)
-                {
-                    var eventString = Encoding.UTF8.GetString(e.Event.Data);
-                    var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
-                    var eventType = _projectionSchema.EventByName(e.Event.EventType);
-                    var eventInstance = (IEvent)JsonConvert.DeserializeObject(eventString, eventType);
-                    yield return new EventEnvelope(eventInstance, em);
-                }
+            var streamName = GetPartitionStreamName(key);
+            await foreach (var p in ReadStream(streamName)) yield return p;
+        }
 
-            } while (!slice.IsEndOfStream);
+        private async IAsyncEnumerable<EventEnvelope> ReadStream(string streamName)
+        {
+            await foreach (var e in _connection.ReadStreamAsync(Direction.Forwards, streamName, StreamRevision.Start,
+                100, resolveLinkTos: true))
+            {
+                var eventString = Encoding.UTF8.GetString(e.Event.Data);
+                var eventType = _projectionSchema.EventByName(e.Event.EventType);
+                var eventInstance = (IEvent) JsonConvert.DeserializeObject(eventString, eventType);
+                var metadata = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
+
+                yield return new EventEnvelope(eventInstance, metadata);
+            }
         }
 
         public async IAsyncEnumerable<EventEnvelope> Get()
         {
-            StreamEventsSlice slice = null;
-            do
-            {
-                slice = await _connection.ReadStreamEventsForwardAsync(_projectionStreamName, StreamPosition.Start, 100, true);
-                foreach (var e in slice.Events)
-                {
-                    var eventString = Encoding.UTF8.GetString(e.Event.Data);
-                    var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
-                    var eventType = _projectionSchema.EventByName(e.Event.EventType);
-                    var eventInstance = (IEvent)JsonConvert.DeserializeObject(eventString, eventType);
-                    yield return new EventEnvelope(eventInstance, em);
-                }
-
-            } while (!slice.IsEndOfStream);
-
+            var streamName = GetStreamName(_projectionId);
+            await foreach (var p in ReadStream(streamName)) yield return p;
         }
 
         public async Task Append(EventMetadata m, IEvent e)
@@ -102,7 +91,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 
             Debug.WriteLine($"Appending to stream {streamName} {e.GetType().Name}");
 
-            var result = await _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, data);
+            var result = await _connection.AppendToStreamAsync(streamName, AnyStreamRevision.Any, new []{ data });
             
             Debug.WriteLine($"LogPosition {result.LogPosition.CommitPosition}");
         }
@@ -114,8 +103,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 
             Debug.WriteLine($"Appending to stream {streamName} {e.GetType().Name}");
             
-            var result = await _connection.AppendToStreamAsync(streamName, ExpectedVersion.Any, data);
-
+            var result = await _connection.AppendToStreamAsync(streamName, AnyStreamRevision.Any, new[] { data});
             Debug.WriteLine($"LogPosition {result.LogPosition.CommitPosition}");
         }
     }

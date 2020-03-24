@@ -42,12 +42,15 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         {
             foreach (var i in _projections)
             {
+
+                //var factory = ActivatorUtilities.CreateInstance<SubscriptionFactory>(serviceProvider);
+
                 var coordinator = ActivatorUtilities.CreateInstance<StreamJoinCoordinator>(serviceProvider).WithName(i.Type.Name);
                 
                 var subscriptions = i.Events.Select(x=> new SubscriptionInfo(x, 
                         typeof(ProjectionEventHandler<,>).MakeGenericType(i.Type, x),i.Type))
                     .ToArray();
-
+                //await factory.SubscribeToStreams(subscriptions);
                 await coordinator.SubscribeToStreams(subscriptions);
             }
         }

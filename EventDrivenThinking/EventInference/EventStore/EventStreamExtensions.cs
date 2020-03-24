@@ -12,5 +12,11 @@ namespace EventDrivenThinking.EventInference.EventStore
         {
             await stream.Append(key, version, correlationId, published);
         }
+        public static async Task Append<TAggregate>(this IAggregateEventStream<TAggregate> stream,
+            Guid key, Guid correlationId,
+            params IEvent[] published)
+        {
+            await stream.Append(key, correlationId, published);
+        }
     }
 }

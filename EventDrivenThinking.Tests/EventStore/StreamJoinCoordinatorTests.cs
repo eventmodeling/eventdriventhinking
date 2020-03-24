@@ -4,9 +4,11 @@ using System.Diagnostics;
 using System.Threading.Tasks;
 using EventDrivenThinking.App.Configuration.EventStore;
 using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.Example.Model.Domain.Hotel;
-using EventStore.ClientAPI;
+using EventDrivenThinking.Utils;
+using EventStore.Client;
 using FluentAssertions;
 using NSubstitute;
 using Serilog.Core;
@@ -18,7 +20,7 @@ namespace EventDrivenThinking.Tests.EventStore
     {
         class DispatcherMock : IEventHandlerDispatcher
         {
-            public SynchronizedCollection<(EventMetadata, IEvent)> Dispatched = new SynchronizedCollection<(EventMetadata, IEvent)>();
+            public EventDrivenThinking.Utils.SynchronizedCollection<(EventMetadata, IEvent)> Dispatched = new EventDrivenThinking.Utils.SynchronizedCollection<(EventMetadata, IEvent)>();
             public Task Dispatch<TEvent>(EventMetadata m, TEvent ev) where TEvent : IEvent
             {
                 Dispatched.Add((m,ev));
@@ -44,7 +46,7 @@ namespace EventDrivenThinking.Tests.EventStore
         {
             this.dispatcher = new DispatcherMock(n);
             this.serviceProvider = Substitute.For<IServiceProvider>();
-            this.sut = new StreamJoinCoordinator(Substitute.For<IEventStoreConnection>(),
+            this.sut = new StreamJoinCoordinator(Substitute.For<IEventStoreFacade>(),
                 Logger.None, serviceProvider);
             dispatchedEvents = new List<EventMetadata>();
         }

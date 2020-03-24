@@ -6,7 +6,8 @@ namespace EventDrivenThinking.EventInference.Abstractions.Write
 {
     public interface IAggregate
     {
-        long Version { get; }
+        bool IsInitialized { get; }
+        ulong Version { get; }
         Guid Id { get; set; }
         void Rehydrate(IEnumerable<IEvent> events);
         Task RehydrateAsync(IAsyncEnumerable<IEvent> events);

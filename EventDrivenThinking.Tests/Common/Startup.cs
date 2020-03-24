@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 using Carter;
 using EventDrivenThinking.App.Configuration;
 using EventDrivenThinking.EventInference.Abstractions.Read;
+using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Example.Model.ReadModels.Hotel;
 using EventDrivenThinking.Integrations.SignalR;
 using EventDrivenThinking.Ui;
-using EventStore.ClientAPI;
+using EventStore.Client;
 using EventStore.ClientAPI.Common.Log;
 using EventStore.ClientAPI.Projections;
 using EventStore.ClientAPI.SystemData;
@@ -53,11 +54,9 @@ namespace EventDrivenThinking.Tests.Common
                     .CommandInvocations.ToCommandHandler();
             });
 
-            services.AddSingleton((serviceProvider) =>
+            services.AddSingleton<IEventStoreFacade>((serviceProvider) =>
             {
-                var connection = EventStoreConnection.Create(new Uri("tcp://admin:changeit@localhost:1113"));
-                connection.ConnectAsync().GetAwaiter().GetResult();
-
+                var connection = new EventStoreFacade("https://localhost:2113", "tcp://localhost:1113", "admin", "changeit");
                 return connection;
             });
 

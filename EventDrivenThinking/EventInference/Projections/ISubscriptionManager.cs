@@ -13,13 +13,13 @@ namespace EventDrivenThinking.EventInference.Projections
     {
         Task<ISubscription> SubscribeToStream(
             Func<(EventMetadata, IEvent)[], Task> onEvents,
-            Action<ISubscription> liveProcessingStarted,
+            Action<ISubscription> onLiveStarted = null,
             Guid? partitionId = null,
             long? location = null);
     }
 
     public interface ISubscription
     {
-        bool IsLive { get; }
+        
     }
 }
