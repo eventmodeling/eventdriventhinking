@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 using System.Threading.Tasks;
+using EventDrivenThinking.Logging;
 using EventStore.Client;
 using EventStore.Client.PersistentSubscriptions;
 using EventStore.Client.Users;
@@ -19,6 +20,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 {
     public class EventStoreFacade : IEventStoreFacade
     {
+        private static readonly Serilog.ILogger Log = LoggerFactory.For<EventStoreFacade>();
         private readonly HttpEventStoreChannel _httpClient;
         private readonly TcpEventStoreChannel _tcpClient;
         private readonly IEventStoreChannel _client;
@@ -108,10 +110,28 @@ namespace EventDrivenThinking.EventInference.EventStore
             return _client.ReadAllAsync(direction, position, maxCount, configureOperationOptions, resolveLinkTos, filterOptions, DefaultCredentials ?? userCredentials, cancellationToken);
         }
 
+        public async Task<Position> GetLastStreamPosition(string streamName)
+        {
+            try
+            {
+                await foreach (var i in _httpClient.ReadStreamAsync(Direction.Backwards,
+                    streamName,
+                    StreamRevision.End, 1, null, true))
+                {
+                    return  i.Event.Position ;
+                }
+            }
+            catch (StreamNotFoundException ex)
+            {
+            }
+            return Position.Start;
+        }
+
         public IAsyncEnumerable<ResolvedEvent> ReadStreamAsync(Direction direction, string streamName, StreamRevision revision, ulong count,
             Action<EventStoreClientOperationOptions> configureOperationOptions = null, bool resolveLinkTos = false, UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken())
         {
+            //return _httpClient.ReadStreamAsync(direction, streamName, revision, count, configureOperationOptions, resolveLinkTos, DefaultCredentials ?? userCredentials, cancellationToken);
             return _client.ReadStreamAsync(direction, streamName, revision, count, configureOperationOptions, resolveLinkTos, DefaultCredentials ?? userCredentials, cancellationToken);
         }
 
@@ -137,7 +157,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             return _client.SubscribeToStreamAsync(streamName, eventAppeared, resolveLinkTos, subscriptionDropped, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);
         }
 
-        public Task<IStreamSubscription> SubscribeToStreamAsync(string streamName, StreamRevision start,
+        public async Task<IStreamSubscription> SubscribeToStreamAsync(string streamName, StreamRevision start,
             Func<IStreamSubscription, ResolvedEvent, CancellationToken, Task> eventAppeared,
             Action<IStreamSubscription> onLiveProcessingStarted, bool resolveLinkTos = false,
             Action<IStreamSubscription, SubscriptionDroppedReason, Exception> subscriptionDropped = null,
@@ -145,12 +165,17 @@ namespace EventDrivenThinking.EventInference.EventStore
             UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken())
         {
-            if (onLiveProcessingStarted != null)
+            Log.Debug("SubscribeToStreamAsync {streamName}", streamName);
+            if (onLiveProcessingStarted != null && _client == _tcpClient)
             {
-                return _tcpClient.SubscribeToStreamAsync(streamName, start, eventAppeared, onLiveProcessingStarted, resolveLinkTos, subscriptionDropped, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);
+                return await _tcpClient.SubscribeToStreamAsync(streamName, start, eventAppeared, onLiveProcessingStarted, resolveLinkTos, subscriptionDropped, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);
             }
             else
-                return _client.SubscribeToStreamAsync(streamName, start, eventAppeared, resolveLinkTos, subscriptionDropped, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);
+            {
+                var result = await _client.SubscribeToStreamAsync(streamName, start, eventAppeared, resolveLinkTos, subscriptionDropped, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);
+                onLiveProcessingStarted?.Invoke(result);
+                return result;
+            }
         }
 
         public Task<DeleteResult> TombstoneAsync(string streamName, StreamRevision expectedRevision, Action<EventStoreClientOperationOptions> configureOperationOptions = null,

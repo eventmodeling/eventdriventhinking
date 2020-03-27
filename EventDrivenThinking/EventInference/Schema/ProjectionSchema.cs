@@ -5,9 +5,13 @@ namespace EventDrivenThinking.EventInference.Schema
 {
     class ProjectionSchema<T> : IProjectionSchema<T>
     {
+        // We need to provide info that will allow to subscribe for Event. 
+        // Since events can be stored via many mechanisms.
+
         private readonly IProjectionSchema _schema;
         public string Category => _schema.Category;
 
+        public Guid ProjectionHash => _schema.ProjectionHash;
         public IEnumerable<Type> Events => _schema.Events;
         public IEnumerable<string> Tags => _schema.Tags;
 

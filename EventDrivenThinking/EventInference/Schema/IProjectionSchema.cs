@@ -60,6 +60,7 @@ namespace EventDrivenThinking.EventInference.Schema
 
     public interface IProjectionSchema : ISchema
     {
+        Guid ProjectionHash { get; }
         IEnumerable<Type> Events { get; }
         Type ModelType { get; }
         Type EventByName(string eventEventType);

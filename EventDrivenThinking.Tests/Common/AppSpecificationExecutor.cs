@@ -18,12 +18,15 @@ using EventDrivenThinking.EventInference.Abstractions.Write;
 using EventDrivenThinking.EventInference.Client;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
+using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.QueryProcessing;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Example.Model.ReadModels.Hotel;
+using EventDrivenThinking.Integrations.EventAggregator;
 using EventDrivenThinking.Integrations.Unity;
 using EventDrivenThinking.Reflection;
+using EventDrivenThinking.Ui;
 using EventStore.Client;
 using EventStore.ClientAPI.Embedded;
 using EventStore.Common.Options;
@@ -33,6 +36,7 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Prism.Events;
 using Serilog.Core;
 using Unity;
 
@@ -115,12 +119,20 @@ namespace EventDrivenThinking.Tests.Common
 
         private async Task InitClient()
         {
+            const string url = "http://localhost:5000/EventHub";
             Assembly[] assemblies = new[]
             {
                 typeof(HotelAggregate).Assembly
             };
             _client.ServiceCollection.AddSingleton(await GetEventStoreConnection());
             _client.ServiceCollection.AddSingleton(Logger.None);
+            _client.ServiceCollection.AddSingleton<IUiEventBus, UiEventBus>();
+            _client.ServiceCollection.AddSingleton<IEventAggregator, EventAggregator>();
+            _client.ServiceCollection.AddSingleton<IModelFactory, UiModelFactory>();
+            _client.ServiceCollection.AddSingleton<IEventStream, InMemoryEventStream>();
+            _client.ServiceCollection.AddSingleton<IServiceDiscovery, InternalDiscoService>();
+            _client.ServiceCollection.AddSingleton<IHttpClient, HttpAppClient>();
+            _client.ServiceCollection.AddSingleton<IClientSession, ClientSession>();
 
             _client.ServiceCollection.AddTransient<IRoomAvailabilityModel, RoomAvailabilityModel>();
 
@@ -129,9 +141,13 @@ namespace EventDrivenThinking.Tests.Common
                 {
                     config.AddAssemblies(assemblies);
                     config.Slices.SelectAll()
-                        .Projections.NoGlobalHandlers().SubscribeFromEventStore()
+                        //.Projections.NoGlobalHandlers().SubscribeFromEventStore()
+                        .Projections.SubscribeFromSignalR(url)
                         .Queries.FromEventStore();
                 });
+
+            await _client.ServiceProvider.ConfigureEventDrivenThinking();
+
         }
 
 

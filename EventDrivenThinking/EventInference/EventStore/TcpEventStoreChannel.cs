@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using System.Threading.Tasks;
 using EventDrivenThinking.Utils;
@@ -31,13 +32,18 @@ namespace EventDrivenThinking.EventInference.EventStore
 
     class TcpSubscription : IStreamSubscription
     {
-        private readonly Action _disposeAction;
+        private Action _disposeAction;
 
-        public TcpSubscription(Action disposeAction)
+        public TcpSubscription(Action disposeAction = null)
         {
             _disposeAction = disposeAction;
         }
 
+        public IStreamSubscription WriteThough(Action dispose)
+        {
+            _disposeAction = dispose;
+            return this;
+        }
         public void Dispose()
         {
             _disposeAction();
@@ -50,6 +56,19 @@ namespace EventDrivenThinking.EventInference.EventStore
             return new DateTime(DateTime.UnixEpoch.Ticks + value, DateTimeKind.Utc);
         }
 
+        public static Filter Convert(this FilterOptions filterOptions)
+        {
+            if (filterOptions.Filter.Prefixes.Any())
+            {
+                var prefies = filterOptions.Filter.Prefixes.Select(x => x.ToString()).ToArray();
+                Filter f = Filter.EventType.Prefix(prefies);
+                
+                return f;
+            }
+            throw new NotSupportedException();
+            
+        }
+    
         public static long ToTicksSinceEpoch(this DateTime value)
         {
             return (value - DateTime.UnixEpoch).Ticks;
@@ -287,35 +306,57 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         public async Task<IStreamSubscription> SubscribeToAllAsync(Position start, Func<IStreamSubscription, ResolvedEvent, CancellationToken, Task> eventAppeared,
             bool resolveLinkTos = false,
-            Action<IStreamSubscription, SubscriptionDroppedReason, Exception> subscriptionDropped = null, FilterOptions filterOptions = null, 
+            Action<IStreamSubscription, SubscriptionDroppedReason, Exception> subscriptionDropped = null, 
+            FilterOptions filterOptions = null, 
             Func<IStreamSubscription, Position, CancellationToken, Task> checkpointReached = null,
             Action<EventStoreClientOperationOptions> configureOperationOptions = null, UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken())
         {
+            TcpSubscription subscription = new TcpSubscription();
             if (filterOptions != null)
-                throw new NotSupportedException();
+            {
+                Filter f = filterOptions.Convert();
+                var result = _client.FilteredSubscribeToAllFrom(start.Convert(),f,
+                    CatchUpSubscriptionFilteredSettings.Default, 
+                    async (s, r) =>
+                    {
+                        subscription.WriteThough(s.Stop);
 
-            TcpSubscription subscription = null;
-            var result = _client.SubscribeToAllFrom(start.Convert(), CatchUpSubscriptionSettings.Default,  
-                async (s, r) =>
-                {
-                    if (subscription == null)
-                        subscription = new TcpSubscription(s.Stop);
+                        await eventAppeared?.Invoke(subscription,
+                            new ResolvedEvent(r.Event.Convert(r.OriginalPosition), r.Link.Convert(r.OriginalPosition),
+                                r.OriginalPosition.ConvertCommit()),
+                            CancellationToken.None);
+                    },
+                    (subscription) => { },
+                    async (s, d, e) =>
+                    {
+                        subscription.WriteThough(s.Stop);
+                        subscriptionDropped?.Invoke(subscription, d.Convert(), e);
+                    });
 
-                    await eventAppeared?.Invoke(subscription,
-                        new ResolvedEvent(r.Event.Convert(r.OriginalPosition), r.Link.Convert(r.OriginalPosition), r.OriginalPosition.ConvertCommit()),
-                        CancellationToken.None);
-                },
-                (subscription) => { },
-                async (s, d, e) =>
-                {
-                    if (subscription == null)
-                        subscription = new TcpSubscription(s.Stop);
-                    subscriptionDropped?.Invoke(subscription, d.Convert(), e);
-                });
+                subscription.WriteThough(result.Stop);
+            }
+            else
+            {
+                var result = _client.SubscribeToAllFrom(start.Convert(), CatchUpSubscriptionSettings.Default,
+                    async (s, r) =>
+                    {
+                        subscription.WriteThough(s.Stop);
 
-            if (subscription == null)
-                subscription = new TcpSubscription(result.Stop);
+                        await eventAppeared?.Invoke(subscription,
+                            new ResolvedEvent(r.Event.Convert(r.OriginalPosition), r.Link.Convert(r.OriginalPosition),
+                                r.OriginalPosition.ConvertCommit()),
+                            CancellationToken.None);
+                    },
+                    (subscription) => { },
+                    async (s, d, e) =>
+                    {
+                        subscription.WriteThough(s.Stop);
+                        subscriptionDropped?.Invoke(subscription, d.Convert(), e);
+                    });
+
+                subscription.WriteThough(result.Stop);
+            }
 
             return subscription;
         }

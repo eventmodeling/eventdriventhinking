@@ -4,8 +4,10 @@ using System.Text;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Logging;
 using EventStore.Client;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace EventDrivenThinking.EventInference.EventStore
 {
@@ -23,6 +25,7 @@ namespace EventDrivenThinking.EventInference.EventStore
     }
     public sealed class EventDataFactory : IEventDataFactory
     {
+        private static readonly ILogger Log = LoggerFactory.For<EventDataFactory>();
         public EventData Create(EventMetadata em, IEvent ev, Func<Type, string> evName)
         {
             var str = JsonConvert.SerializeObject(ev);
@@ -50,9 +53,11 @@ namespace EventDrivenThinking.EventInference.EventStore
             var contentBytes = Encoding.UTF8.GetBytes(content);
             var metadataBytes = Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(metadata));
 
-            Debug.WriteLine($"Creating a link {content}");
+            Log.Debug("Creating a link {link}", content);
 
-            return new EventData(Uuid.NewUuid(), "$>", contentBytes, metadataBytes);
+            //return new EventData(Uuid.NewUuid(), "$>", contentBytes, metadataBytes);
+            //return new EventData(Uuid.FromGuid(ev.Id), "$>", contentBytes, metadataBytes, "application/octet-stream");
+            return new EventData(Uuid.NewUuid(), "$>", contentBytes, metadataBytes, "application/octet-stream");
             //return new EventData(ev.Id, "$>", false, contentBytes, metadataBytes);
         }
 

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -11,6 +12,26 @@ namespace EventDrivenThinking.Utils
 {
     public static class CollectionExtensions
     {
+        public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key,
+            Func<TKey, TValue> onAdd)
+        {
+            if (dict is ConcurrentDictionary<TKey, TValue> cdict)
+                return cdict.GetOrAdd(key, onAdd);
+
+            if(!dict.TryGetValue(key, out TValue value))
+                dict.Add(key, value = onAdd(key));
+            return value;
+        }
+        public static TValue GetOrAdd<TKey, TValue>(this IDictionary<TKey, TValue> dict, TKey key, TValue value)
+        {
+            if (dict is ConcurrentDictionary<TKey, TValue> cdict)
+                return cdict.GetOrAdd(key, value);
+
+            if (!dict.TryGetValue(key, out TValue value2))
+                dict.Add(key, value2 = value);
+            return value2;
+        }
+
         public static Collection<T> RemoveAll<T>(this Collection<T> collection, IEnumerable<T> items)
         {
             if (collection == null)
@@ -220,4 +241,6 @@ namespace EventDrivenThinking.Utils
         }
         #endregion
     }
+
+    
 }

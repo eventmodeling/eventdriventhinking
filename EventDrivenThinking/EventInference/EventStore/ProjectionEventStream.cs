@@ -9,6 +9,7 @@ using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Logging;
 using EventDrivenThinking.Utils;
 using EventStore.Client;
 using Newtonsoft.Json;
@@ -16,44 +17,57 @@ using ILogger = Serilog.ILogger;
 
 namespace EventDrivenThinking.EventInference.EventStore
 {
-    public interface IProjectionEventStream<TProjection>
+    public interface IProjectionEventStream<TProjection> : IProjectionEventStream
         where TProjection : IProjection
     {
-        string GetPartitionStreamName(Guid key);
+        
+    }
+    struct StreamPosition : IStreamPosition
+    {
+        public Position EventStorePosition;
+    }
+    public interface IStreamPosition { }
+    public interface IProjectionEventStream
+    {
+        Type ProjectionType { get; }
         IAsyncEnumerable<EventEnvelope> Get(Guid key);
         IAsyncEnumerable<EventEnvelope> Get();
+        Task<IStreamPosition> LastPosition();
         Task Append(EventMetadata m, IEvent e);
         Task AppendPartition(Guid key, EventMetadata m, IEvent e);
+
     }
 
-    
+
     public class ProjectionEventStream<TProjection> : IProjectionEventStream<TProjection>
         where TProjection : IProjection
     {
+        public Type ProjectionType => typeof(TProjection);
         private readonly IEventStoreFacade _connection;
         private readonly IEventDataFactory _eventDataFactory;
-        private readonly ILogger _logger;
+        private static readonly ILogger Log = LoggerFactory.For<ProjectionEventStream<TProjection>>();
         private readonly string _projectionStreamName;
         
-        //private static readonly Guid _projectionId = typeof(TProjection).ComputeSourceHash();
-        private static readonly Guid _projectionId = typeof(TProjection).FullName.ToGuid();
+        
 
-        private IProjectionSchema<TProjection> _projectionSchema;
-        public ProjectionEventStream(IEventStoreFacade connection, IEventDataFactory eventDataFactory, ILogger logger, IProjectionSchema<TProjection> projectionSchema)
+        private readonly IProjectionSchema<TProjection> _projectionSchema;
+        public ProjectionEventStream(IEventStoreFacade connection, 
+            IEventDataFactory eventDataFactory,
+            IProjectionSchema<TProjection> projectionSchema)
         {
             _connection = connection;
             _eventDataFactory = eventDataFactory;
-            _logger = logger;
             _projectionSchema = projectionSchema;
             _projectionStreamName =
                 $"{ServiceConventions.GetCategoryFromNamespace(typeof(TProjection).Namespace)}Projection";
         }
 
-        public string GetPartitionStreamName(Guid key)
+        private string GetPartitionStreamName(Guid key)
         {
            return $"{_projectionStreamName}Partition-{key}";
         }
-        public string GetStreamName(Guid key)
+
+        private string GetStreamName(Guid key)
         {
             return $"{_projectionStreamName}-{key}";
         }
@@ -80,31 +94,36 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         public async IAsyncEnumerable<EventEnvelope> Get()
         {
-            var streamName = GetStreamName(_projectionId);
+            var streamName = GetStreamName(_projectionSchema.ProjectionHash);
             await foreach (var p in ReadStream(streamName)) yield return p;
+        }
+
+        public async Task<IStreamPosition> LastPosition()
+        {
+            var streamName = GetStreamName(_projectionSchema.ProjectionHash);
+            var esPosition = await _connection.GetLastStreamPosition(streamName);
+            return new StreamPosition() {EventStorePosition = esPosition};
+           
         }
 
         public async Task Append(EventMetadata m, IEvent e)
         {
-            var streamName = GetStreamName(_projectionId);
-            var data = _eventDataFactory.CreateLink(m,e,typeof(TProjection), _projectionId);
+            var streamName = GetStreamName(_projectionSchema.ProjectionHash);
+            var data = _eventDataFactory.CreateLink(m,e,typeof(TProjection), _projectionSchema.ProjectionHash);
 
-            Debug.WriteLine($"Appending to stream {streamName} {e.GetType().Name}");
+            Log.Debug("Appending to stream {streamName} {eventType}", streamName, e.GetType().Name);
 
             var result = await _connection.AppendToStreamAsync(streamName, AnyStreamRevision.Any, new []{ data });
-            
-            Debug.WriteLine($"LogPosition {result.LogPosition.CommitPosition}");
         }
         public async Task AppendPartition(Guid key, EventMetadata m, IEvent e)
         {
             var streamName = GetPartitionStreamName(key);
             
-            var data = _eventDataFactory.CreateLink(m, e, typeof(TProjection), _projectionId);
+            var data = _eventDataFactory.CreateLink(m, e, typeof(TProjection), _projectionSchema.ProjectionHash);
 
-            Debug.WriteLine($"Appending to stream {streamName} {e.GetType().Name}");
+            Log.Debug("Appending to stream {streamName} {eventType}", streamName, e.GetType().Name);
             
             var result = await _connection.AppendToStreamAsync(streamName, AnyStreamRevision.Any, new[] { data});
-            Debug.WriteLine($"LogPosition {result.LogPosition.CommitPosition}");
         }
     }
 }

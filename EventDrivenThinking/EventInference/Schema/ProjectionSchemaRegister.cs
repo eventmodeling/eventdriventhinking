@@ -6,10 +6,28 @@ using System.Reflection;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Core;
+using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
+using EventDrivenThinking.Utils;
 
 namespace EventDrivenThinking.EventInference.Schema
 {
+    
+    /// <summary>
+    /// In a project we can have many projections that update one model. 
+    /// However each projection need to have exactly one event that updates the model and that event
+    /// is not shared with other projections.
+    ///
+    /// When a projection subscribes to an event, it check it's source. Based on the source
+    /// The infrastructure can understand how to plug appropriate stream.
+    ///
+    /// For instance a projection might consist of events that some are published locally in event store
+    /// Some come from other clients/servers
+    ///
+    /// The projection produces a stream of events when those events are delivered.
+    /// When a projection subscribes for changes it can try to autodetect all sources. For instance:
+    /// Sources for projection could be projections stream itself, could be stream per event type, can be global stream. 
+    /// </summary>
     public class ProjectionSchemaRegister : IProjectionSchemaRegister
     {
         class ProjectionSchema : IProjectionSchema
@@ -18,6 +36,8 @@ namespace EventDrivenThinking.EventInference.Schema
             public Type ModelType { get; set; }
             public string Category { get; private set; }
             private readonly List<Type> _events;
+            public Guid ProjectionHash { get; }
+
             public IEnumerable<Type> Events
             {
                 get => _events.AsReadOnly();
@@ -27,6 +47,8 @@ namespace EventDrivenThinking.EventInference.Schema
             public ProjectionSchema(Type projectionType, string category, params Type[] partitioners)
             {
                 Type = projectionType;
+                //ProjectionHash = projectionType.ComputeSourceHash();
+                ProjectionHash = projectionType.FullName.ToGuid();
                 Category = category;
                 _events = new List<Type>();
                 _tags = new Lazy<HashSet<string>>(() => new HashSet<string>(Type.FullName.Split('.')));

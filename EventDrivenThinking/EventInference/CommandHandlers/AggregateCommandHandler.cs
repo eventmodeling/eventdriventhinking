@@ -36,19 +36,18 @@ namespace EventDrivenThinking.EventInference.CommandHandlers
 
         public async Task When(Guid id, TCommand cmd)
         {
-            Debug.WriteLine($"Invoking a command on an aggregate: {cmd.GetType().Name}");
+            _logger.Debug("Invoking a command on an aggregate: {aggregateType}", cmd.GetType().Name);
             var events = _eventStream.Get(id);
             var aggregate = new TAggregate { Id = id };
 
             await aggregate.RehydrateAsync(events);
-            var version = aggregate.IsInitialized ? aggregate.Version : 0;
+            var version = aggregate.Version;
 
             var published = aggregate.Execute(cmd);
 
-            var commitedEvents = await _eventStream.Append(aggregate.Id,
-                version,
-                cmd.Id, 
-                published);
+            var commitedEvents =
+                version == 0 ?  await _eventStream.Append(aggregate.Id, cmd.Id, published) :
+                                await _eventStream.Append(aggregate.Id, version-1, cmd.Id, published);
 
             // We return events to client - think about correlation-id solution?
             var current = _sessionContext.Current();

@@ -18,6 +18,7 @@ using Serilog.Events;
 namespace EventDrivenThinking.EventInference.InMemory
 {
     public class OptimisticConcurrencyException : Exception { }
+
     public class InMemoryAggregateEventStream<TAggregate> : IAggregateEventStream<TAggregate>
     {
         private readonly IEventAggregator _eventAggregator;

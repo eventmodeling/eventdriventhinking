@@ -8,13 +8,16 @@ using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Logging;
 using EventStore.Client;
 using Newtonsoft.Json;
+using Serilog;
 
 namespace EventDrivenThinking.Integrations.EventStore
 {
     public class EventStoreModelProjectionSubscriber<TModel> : IModelProjectionSubscriber<TModel>
     {
+        private static ILogger logger = LoggerFactory.For<EventStoreModelProjectionSubscriber<TModel>>();
         class Subscription : ISubscription
         {
             public string StreamName { get; }
@@ -50,6 +53,8 @@ namespace EventDrivenThinking.Integrations.EventStore
             string streamName = ServiceConventions.GetProjectionStreamFromType(_schema.Type);
             if (partitionId.HasValue)
                 streamName += $"Partition-{partitionId}";
+            else 
+                streamName += $"-{_schema.ProjectionHash}";
 
             Subscription s = new Subscription(streamName);
             
@@ -58,6 +63,8 @@ namespace EventDrivenThinking.Integrations.EventStore
                 StreamRevision.Start, 
                 async (subscription, e,ea) =>
                 {
+                    logger.Debug("Received event {EventType}, IsLink: {isLink}", e.Event.EventType, e.Link != null);
+
                     var eventString = Encoding.UTF8.GetString(e.Event.Data);
                     var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
                     var eventType = _schema.EventByName(e.Event.EventType);

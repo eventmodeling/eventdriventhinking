@@ -12,6 +12,7 @@ using EventDrivenThinking.EventInference.Models;
 
 namespace EventDrivenThinking.EventInference.Schema
 {
+   
     public sealed class AggregateSchemaRegister : IAggregateSchemaRegister
     {
         private readonly Dictionary<Type, AggregateSchema> _aggregates;

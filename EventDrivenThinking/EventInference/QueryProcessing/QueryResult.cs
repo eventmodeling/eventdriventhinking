@@ -19,6 +19,9 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
     public static class ObjectExtensions{
         public static T CopyFrom<T>(this T destination, T source)
         {
+            if (object.ReferenceEquals(source, destination))
+                return destination;
+
             MirroringMapper<T>.Instance.Mapper.Map(source, destination);
             return destination;
         }

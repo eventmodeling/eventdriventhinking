@@ -53,8 +53,8 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         }
 
-        
 
+       
         public async Task<EventEnvelope[]> Append(Guid key, ulong version, Guid correlationId, IEnumerable<IEvent> published)
         {
             var streamName = GetStreamName(key);
@@ -84,13 +84,12 @@ namespace EventDrivenThinking.EventInference.EventStore
             for (int i = 0; i < publishedArray.Length; i++)
             {
                 var ev = publishedArray[i];
-                data[i] = new EventEnvelope(ev, _metadataFactory.Create(key, correlationId, ev));
+                data[i] = new EventEnvelope(ev, _metadataFactory.Create(key, correlationId, ev, (ulong)i));
             }
             var evData = data.Select(_eventDataFactory.Create);
 
-            //_connection.AppendToStreamAsync("", new StreamRevision(3), )
 
-            await _connection.AppendToStreamAsync(streamName, AnyStreamRevision.Any, evData);
+            await _connection.AppendToStreamAsync(streamName, AnyStreamRevision.NoStream, evData);
             return data;
         }
 

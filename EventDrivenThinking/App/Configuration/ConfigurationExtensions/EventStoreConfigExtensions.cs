@@ -8,9 +8,9 @@ namespace EventDrivenThinking.App.Configuration
         {
             return config.Merge(new AggregateSliceStartup());
         }   
-        public static FeaturePartition SubscribeFromEventStore(this ProjectionsConfig config)
+        public static FeaturePartition SubscribeFromEventStore(this ProjectionsConfig config, bool withGlobalHandlers = true)
         {
-            return config.Merge(new ProjectionsSliceStartup());
+            return config.Merge(new ProjectionsSliceStartup(withGlobalHandlers));
         }   
         public static FeaturePartition SubscribeFromEventStore(this ProcessorsConfig config)
         {

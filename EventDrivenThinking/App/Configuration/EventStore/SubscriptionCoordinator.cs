@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
+using EventDrivenThinking.Logging;
 using EventStore.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
@@ -26,6 +27,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
 
     class StreamEventReceiver<TEvent> : IStreamReceiver where TEvent : IEvent
     {
+        private static ILogger Log = LoggerFactory.For<StreamEventReceiver<TEvent>>();
         private readonly string _streamName;
         private readonly StreamJoinCoordinator _coordinator;
         private ulong? _lastCheckpoint;
@@ -78,7 +80,8 @@ namespace EventDrivenThinking.App.Configuration.EventStore
             var ev = JsonConvert.DeserializeObject<TEvent>(eventData);
             var m = JsonConvert.DeserializeObject<EventMetadata>(metaData);
             m.Version = arg2.Event.EventNumber;
-            Debug.WriteLine($"==========> EventAppeared: {m.Version} {ev.GetType().Name}");
+
+            Log.Debug("Appeared {eventName} {version}@{streamName}", ev.GetType().Name, m.Version,arg2.Event.EventStreamId);
             _lastCheckpoint = arg2.OriginalEventNumber;
             
             await _coordinator.Push(_number, m, ev);

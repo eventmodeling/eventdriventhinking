@@ -29,7 +29,7 @@ namespace EventDrivenThinking.EventInference.Core
                     Func<TState, ICommand, IEvent[]>>();
         
         public virtual Guid Id { get; set; }
-        public bool IsInitialized { get; private set; }
+        
         private ulong _version;
         protected virtual TState _state { get; private set; }
         
@@ -40,51 +40,26 @@ namespace EventDrivenThinking.EventInference.Core
 
         public ulong Version
         {
-            get
-            {
-                if (IsInitialized)
-                    return _version;
-                throw new AggregateNotInitializedException();
-            }
+            get { return _version; }
             private set => _version = value;
         }
 
 
         public void Rehydrate(IEnumerable<IEvent> events)
         {
-            using var enumerator = events.GetEnumerator();
-            if (enumerator.MoveNext())
+            foreach (var i in events)
             {
-                Apply(enumerator.Current);
-                IsInitialized = true;
-                while (enumerator.MoveNext())
-                {
-                    Apply(enumerator.Current);
-                    _version += 1;
-                }
+                Apply(i);
+                _version += 1;
             }
         }
 
         public async Task RehydrateAsync(IAsyncEnumerable<IEvent> events)
         {
-            var enumerator = events.GetAsyncEnumerator();
-
-            try
+            await foreach (var i in events)
             {
-                if (await enumerator.MoveNextAsync())
-                {
-                    Apply(enumerator.Current);
-                    IsInitialized = true;
-                    while (await enumerator.MoveNextAsync())
-                    {
-                        Apply(enumerator.Current);
-                        _version += 1;
-                    }
-                }
-            }
-            finally
-            {
-                await enumerator.DisposeAsync();
+                Apply(i);
+                _version += 1;
             }
         }
 

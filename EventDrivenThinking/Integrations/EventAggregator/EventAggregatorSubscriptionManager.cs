@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Core;
+using EventDrivenThinking.EventInference.InMemory;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
@@ -44,44 +45,44 @@ namespace EventDrivenThinking.Integrations.EventAggregator
                 .Subscribe(ev => _events.Add(ev), ThreadOption.UIThread, true);
         }
     }
-    public class EventAggregatorModelProjectionSubscriber<TModel> : IModelProjectionSubscriber<TModel>
+    public class EventAggregatorModelProjectionSubscriber<TModel,TProjection> : IModelProjectionSubscriber<TModel>
     {
-        private readonly IEventAggregator _eventAggregator;
-        private readonly IEventStream _stream;
-        private readonly ILogger _logger;
-        private readonly MethodInfo _method;
-        public EventAggregatorModelProjectionSubscriber(IEventAggregator eventAggregator, IEventStream stream, ILogger logger)
+        class EventAggregateSubscription : ISubscription
         {
-            _eventAggregator = eventAggregator;
-            _stream = stream;
-            _logger = logger;
-            _method = this.GetType().GetMethod(nameof(SubscribeCore), BindingFlags.Instance | BindingFlags.NonPublic);
-        }
+            public readonly SubscriptionToken Token;
 
-        public void Subscribe(IEnumerable<Type> eventTypes, bool fromBeginning,
-            Action<IEnumerable<EventEnvelope>> onEventReceived)
-        {
-            var types = eventTypes.ToArray();
-            foreach (var t in types)
-                _method.MakeGenericMethod(t).Invoke(this, new object[] { onEventReceived });
-
-            if (fromBeginning)
+            public EventAggregateSubscription(SubscriptionToken token)
             {
-                onEventReceived(_stream.GetEvents(types));
+                Token = token;
             }
         }
+        private IProjectionSchema _schema;
+        private PubSubEvent<ProjectionEvent<TProjection>> _pubSubEvent;
 
-        private void SubscribeCore<TEventType>(Action<IEnumerable<EventEnvelope>> onEventReceived) where TEventType : IEvent
+        public EventAggregatorModelProjectionSubscriber(IEventAggregator eventAggregator, 
+            IProjectionSchemaRegister projectionSchemaRegister)
         {
-            _logger.Information("SubscriptionManager is subscribing an event {eventName} though EventAggregator", typeof(TEventType).Name);
-            _eventAggregator.GetEvent<PubSubEvent<EventEnvelope<TEventType>>>()
-                .Subscribe((ev => onEventReceived(new[] {ev})), ThreadOption.UIThread,true);
+            _pubSubEvent = eventAggregator.GetEvent<PubSubEvent<ProjectionEvent<TProjection>>>();
+            _schema = projectionSchemaRegister.FindByModelType(typeof(TModel));
         }
 
 
-        public Task<ISubscription> SubscribeToStream(Func<(EventMetadata, IEvent)[], Task> onEvents, Action<ISubscription> onLiveStarted = null, Guid? partitionId = null, long? location = null)
+        public async Task<ISubscription> SubscribeToStream(Func<(EventMetadata, IEvent)[], Task> onEvents, 
+            Action<ISubscription> onLiveStarted = null, 
+            Guid? partitionId = null, 
+            long? location = null)
         {
-            throw new NotImplementedException();
+            EventAggregateSubscription subscription = new EventAggregateSubscription(_pubSubEvent.Subscribe( x=> { 
+
+                if(partitionId == x.PartitionId)
+                    onEvents(new (EventMetadata, IEvent)[] {(x.Event.Metadata, x.Event.Event)}).GetAwaiter().GetResult();
+
+            }, ThreadOption.UIThread));
+
+            onLiveStarted?.Invoke(subscription);
+
+            return subscription;
         }
+        
     }
 }

@@ -8,16 +8,16 @@ Scenario: I want to execute simple command against an aggregate
 	| Property | Value |
 	| Number   | 101   |
 	
-	When I query for availability of a room:
-	| Parameter | Value      |
-	| Start     | 2020-03-03 |
-	| End       | 2020-03-04 |
-	| Floor     | 1          |
-	
-	Then I get query results: 
-	| Property       | Value   |
-	| AvailableRooms | ["101"] |
-	| Found          | true    |
+	#When I query for availability of a room:
+	#| Parameter | Value      |
+	#| Start     | 2020-03-03 |
+	#| End       | 2020-03-04 |
+	#| Floor     | 1          |
+	#
+	#Then I get query results: 
+	#| Property       | Value   |
+	#| AvailableRooms | ["101"] |
+	#| Found          | true    |
 
 	When I book a room:
 	| Property | Value      |
