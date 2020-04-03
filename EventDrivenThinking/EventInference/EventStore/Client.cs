@@ -17,7 +17,7 @@ using WriteResult = EventStore.Client.WriteResult;
 
 namespace EventDrivenThinking.EventInference.EventStore
 {
-    public interface IEventStoreFacade
+    public interface IEventStoreFacade : IDisposable
     {
         UserCredentials DefaultCredentials { get; }
         IHttpEventStoreProjectionManagerClient ProjectionsManager { get; }
@@ -35,7 +35,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             Action<EventStoreClientOperationOptions> configureOperationOptions = null, UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken());
 
-        void Dispose();
+        
 
         Task<DeleteResult> SoftDeleteAsync(string streamName, StreamRevision expectedRevision, Action<EventStoreClientOperationOptions> configureOperationOptions = null,
             UserCredentials userCredentials = null, CancellationToken cancellationToken = new CancellationToken());

@@ -10,6 +10,7 @@ using EventStore.Client.PersistentSubscriptions;
 using EventStore.Client.Projections;
 using EventStore.Client.Users;
 using EventStore.ClientAPI;
+using EventStore.ClientAPI.UserManagement;
 using DeleteResult = EventStore.Client.DeleteResult;
 using EventData = EventStore.Client.EventData;
 using EventData2 = EventStore.ClientAPI.EventData;
@@ -86,7 +87,7 @@ namespace EventDrivenThinking.EventInference.EventStore
         {
             if (e == null)
                 return null;
-
+            
             IDictionary<string, string> meta = new Dictionary<string, string>()
             {
                 { "type",e.EventType},
@@ -170,6 +171,8 @@ namespace EventDrivenThinking.EventInference.EventStore
         public TcpEventStoreChannel(IEventStoreConnection tcp)
         {
             _client = tcp;
+            //UsersManager um = new UsersManager();
+            
         }
 
         public async Task<WriteResult> AppendToStreamAsync(string streamName, StreamRevision expectedRevision, IEnumerable<EventData> eventData,
@@ -367,6 +370,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             CancellationToken cancellationToken = new CancellationToken())
         {
             TcpSubscription subscription = null;
+            //await Task.Delay(5000);
             var result = await _client.SubscribeToStreamAsync(streamName, resolveLinkTos,
                 async (s, r) =>
                 {
@@ -409,7 +413,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             CancellationToken cancellationToken = new CancellationToken())
         {
             TcpSubscription subscription = null;
-            long? lastCheckpoint = start.ToUInt64() == 0 ? null : (long?)start.ToUInt64();
+            long? lastCheckpoint = start.ToUInt64() == 0 ? null : (long?)(start.ToUInt64() == UInt64.MaxValue ? long.MaxValue : start.ToUInt64());
             var result = _client.SubscribeToStreamFrom(streamName, lastCheckpoint,
                 CatchUpSubscriptionSettings.Default,
                 async (s, r) =>

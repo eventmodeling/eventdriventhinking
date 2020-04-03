@@ -4,8 +4,11 @@ using System.Reflection;
 
 namespace EventDrivenThinking.EventInference.Schema
 {
-    
-    public interface ICommandInvocationSchemaRegister : ISchemaRegister<IClientCommandSchema>
+    public interface IEventSchemaRegister : ISchemaRegister<IEventSchema>
+    {
+
+    }
+    public interface ICommandsSchemaRegister : ISchemaRegister<IClientCommandSchema>
     {
         Type[] Commands { get; }
         string GetCategory(Type command);
@@ -21,4 +24,11 @@ namespace EventDrivenThinking.EventInference.Schema
         bool IsCustomCommandHandler { get;  }
         Type CommandHandlerType { get; }
     }
+
+    public interface IEventSchema : ISchema
+    {
+        //Type EventSubscriberType { get; }
+    }
+
+    
 }

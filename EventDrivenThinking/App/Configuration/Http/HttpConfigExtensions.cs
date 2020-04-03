@@ -10,13 +10,13 @@ namespace EventDrivenThinking.App.Configuration.Http
 {
     public static class HttpConfigExtensions
     {
-        public static FeaturePartition UseHttp(this CommandInvocationsConfig config)
+        public static FeaturePartition UseHttp(this CommandsConfig config)
         {
-            return config.Merge(new RestCommandInvocationStartup());
+            return config.Merge(new RestCommandsStartup());
         }
     }
 
-    public class RestCommandInvocationStartup : ICommandInvocationSliceStartup
+    public class RestCommandsStartup : ICommandsSliceStartup
     {
         private IEnumerable<IClientCommandSchema> _commands;
         public void RegisterServices(IServiceCollection serviceCollection)

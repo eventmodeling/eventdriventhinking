@@ -13,8 +13,9 @@ namespace EventDrivenThinking.App.Configuration
         private IAggregateSchemaRegister _aggregateSchemaRegister;
         private IProjectionSchemaRegister _projectionSchemaRegister;
         private IProcessorSchemaRegister _processorSchemaRegister;
-        private ICommandInvocationSchemaRegister _commandInvocationRegister;
+        private ICommandsSchemaRegister _commandsRegister;
         private IQuerySchemaRegister _querySchemaRegister;
+        private IEventSchemaRegister _eventsRegister;
         private Lazy<Dictionary<Type, ISchemaRegister>> _register;
 
         public void AddSchemaRegister<T>(ISchemaRegister<T> schemaRegister)
@@ -53,11 +54,12 @@ namespace EventDrivenThinking.App.Configuration
             _register = new Lazy<Dictionary<Type, ISchemaRegister>>(() =>
             {
                 Dictionary<Type, ISchemaRegister> r = new Dictionary<Type, ISchemaRegister>();
-                AddSchemaInDict(r,CommandInvocationRegister)
+                AddSchemaInDict(r,CommandsRegister)
                     .AddSchemaInDict(r,AggregateSchemaRegister)
                     .AddSchemaInDict(r,ProjectionSchemaRegister)
                     .AddSchemaInDict(r,ProcessorSchemaRegister)
-                    .AddSchemaInDict(r,QuerySchemaRegister);
+                    .AddSchemaInDict(r,QuerySchemaRegister)
+                    .AddSchemaInDict(r,EventsSchemaRegister);
                 return r;
             });
         }
@@ -80,22 +82,22 @@ namespace EventDrivenThinking.App.Configuration
             }
         }
 
-        public ICommandInvocationSchemaRegister CommandInvocationRegister
+        public ICommandsSchemaRegister CommandsRegister
         {
             get
             {
-                if (_commandInvocationRegister == null)
+                if (_commandsRegister == null)
                 {
-                    _commandInvocationRegister = new CommandInvocationSchemaInvocationSchemaRegister();
+                    _commandsRegister = new CommandsSchemaRegister();
                     
                 }
 
-                return _commandInvocationRegister;
+                return _commandsRegister;
             }
             set
             {
-                if (_commandInvocationRegister != null) throw new InvalidOperationException($"{nameof(ICommandInvocationSchemaRegister)} has already been used.");
-                _commandInvocationRegister = value;
+                if (_commandsRegister != null) throw new InvalidOperationException($"{nameof(ICommandsSchemaRegister)} has already been used.");
+                _commandsRegister = value;
             }
         }
 
@@ -137,7 +139,24 @@ namespace EventDrivenThinking.App.Configuration
                 _projectionSchemaRegister = value;
             }
         }
+        public IEventSchemaRegister EventsSchemaRegister
+        {
+            get
+            {
+                if (_eventsRegister == null)
+                {
+                    _eventsRegister = new EventsSchemaRegister();
 
+                }
+
+                return _eventsRegister;
+            }
+            set
+            {
+                if (_eventsRegister != null) throw new InvalidOperationException($"{nameof(IEventSchemaRegister)} has already been used.");
+                _eventsRegister = value;
+            }
+        }
         public IProcessorSchemaRegister ProcessorSchemaRegister
         {
             get

@@ -2,12 +2,21 @@
 
 namespace EventDrivenThinking.App.Configuration
 {
-    public class CommandInvocationsConfig: SliceStageConfigBase<IClientCommandSchema>
+    public class CommandsConfig: SliceStageConfigBase<IClientCommandSchema>
     {
-        internal CommandInvocationsConfig(FeaturePartition featurePartition) : base(featurePartition)
+        internal CommandsConfig(FeaturePartition featurePartition) : base(featurePartition)
         {
             
         }
 
+    }
+
+    
+
+    public class EventsConfig : SliceStageConfigBase<IEventSchema>
+    {
+        public EventsConfig(FeaturePartition partition) : base(partition)
+        {
+        }
     }
 }

@@ -32,4 +32,9 @@ namespace EventDrivenThinking.App.Configuration
             return provider.GetRequiredService<IBootstrapper>().Configure(provider);
         }
     }
+
+    public class EventSubscriptionFactory
+    {
+
+    }
 }

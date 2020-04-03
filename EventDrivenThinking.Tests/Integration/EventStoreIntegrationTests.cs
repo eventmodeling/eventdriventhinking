@@ -11,6 +11,7 @@ using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Example.Model.ReadModels.Hotel;
+using EventDrivenThinking.Integrations.EventStore;
 using EventDrivenThinking.Integrations.Unity;
 using EventDrivenThinking.Tests.Common;
 using EventDrivenThinking.Utils;
@@ -171,7 +172,7 @@ namespace EventDrivenThinking.Tests.Integration
         private static AggregateEventStream<HotelAggregate> GetStream(IEventStoreFacade connection, 
             IAggregateSchema<HotelAggregate> schema)
         {
-            AggregateEventStream<HotelAggregate> stream = new AggregateEventStream<HotelAggregate>(connection,
+            AggregateEventStream<HotelAggregate> stream = new AggregateEventStream<HotelAggregate>(connection,new EventConverter(), 
                 new EventDataFactory(),new EventMetadataFactory<HotelAggregate>(), schema, Logger.None);
             return stream;
         }

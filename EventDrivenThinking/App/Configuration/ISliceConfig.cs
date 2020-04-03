@@ -29,7 +29,7 @@ namespace EventDrivenThinking.App.Configuration
     {
     }
 
-    public interface ICommandInvocationSliceStartup : ISliceStartup<IClientCommandSchema>
+    public interface ICommandsSliceStartup : ISliceStartup<IClientCommandSchema>
     {
     }
 

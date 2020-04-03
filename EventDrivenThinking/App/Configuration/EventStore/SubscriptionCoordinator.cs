@@ -51,7 +51,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         {
             _connection = connection;
             _lastCheckpoint = await _checkpointRepo.GetLastCheckpoint();
-            Debug.WriteLine($"Subscribing steam: {_streamName} from {_lastCheckpoint?.ToString() ?? "beginning"}");
+            
             this.Subscription = await _connection.SubscribeToStreamAsync(_streamName,
                 new StreamRevision(_lastCheckpoint ?? 0L),
                 OnEventAppeared,
@@ -63,7 +63,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         private void OnSubscriptionDropped(IStreamSubscription arg1, SubscriptionDroppedReason arg2, Exception arg3)
         {
             //throw new NotImplementedException("We need to implement reconnect.");
-            Debug.WriteLine($"Subscription was dropped {_streamName} (reason = {arg2}, Exception = {arg3}), reconnecting.");
+            
             _reconnectionCounter += 1;
         }
 

@@ -9,6 +9,7 @@ using EventDrivenThinking.EventInference.Abstractions.Write;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Integrations.EventStore;
 using EventStore.Client;
 using Newtonsoft.Json;
 using EventData = EventStore.Client.EventData;
@@ -22,16 +23,19 @@ namespace EventDrivenThinking.EventInference.EventStore
         private readonly IAggregateSchema<TAggregate> _aggregateSchema;
         private readonly ILogger _logger;
         private readonly IEventStoreFacade _connection;
+        private readonly IEventConverter _eventConverter;
 
         private readonly IEventDataFactory _eventDataFactory;
         private readonly IEventMetadataFactory<TAggregate> _metadataFactory;
 
         public AggregateEventStream(IEventStoreFacade connection, 
+            IEventConverter eventConverter,
             IEventDataFactory eventDataFactory,
             IEventMetadataFactory<TAggregate> metadataFactory,
             IAggregateSchema<TAggregate> aggregateSchema, Serilog.ILogger logger)
         {
             _connection = connection;
+            _eventConverter = eventConverter;
             _eventDataFactory = eventDataFactory;
             _metadataFactory = metadataFactory;
             _aggregateSchema = aggregateSchema;
@@ -44,9 +48,8 @@ namespace EventDrivenThinking.EventInference.EventStore
             await foreach (var e in _connection.ReadStreamAsync(Direction.Forwards, streamName, StreamRevision.Start,
                 100, resolveLinkTos: true))
             {
-                var eventString = Encoding.UTF8.GetString(e.Event.Data);
                 var eventType = _aggregateSchema.EventByName(e.Event.EventType);
-                var eventInstance = (IEvent) JsonConvert.DeserializeObject(eventString, eventType.EventType);
+                var (m, eventInstance) = _eventConverter.Convert(eventType.EventType, e);   
 
                 yield return eventInstance;
             }

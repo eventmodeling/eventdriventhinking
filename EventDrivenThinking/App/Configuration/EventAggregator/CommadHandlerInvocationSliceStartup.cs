@@ -14,7 +14,7 @@ using Serilog;
 
 namespace EventDrivenThinking.App.Configuration.EventAggregator
 {
-    public class CommandHandlerInvocationSliceStartup : ICommandInvocationSliceStartup
+    public class CommandHandlerInvocationSliceStartup : ICommandsSliceStartup
     {
         public void RegisterServices(IServiceCollection serviceCollection)
         {

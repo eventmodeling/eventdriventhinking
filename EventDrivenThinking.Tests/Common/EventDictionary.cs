@@ -57,7 +57,7 @@ namespace EventDrivenThinking.Tests.Common
 
         private QuerySchemaRegister _querySchemaRegister;
         private AggregateSchemaRegister _aggregateSchemaRegister;
-        private CommandInvocationSchemaInvocationSchemaRegister _invocationSchemaRegister;
+        private CommandsSchemaRegister _schemaRegister;
         private ProjectionSchemaRegister _projectionSchemaRegister;
 
         public IAggregateSchemaRegister AggregateSchemaRegister => _aggregateSchemaRegister;
@@ -102,10 +102,10 @@ namespace EventDrivenThinking.Tests.Common
         }
         void PrepareCommands(params Assembly[] assemblies)
         {
-            this._invocationSchemaRegister = new CommandInvocationSchemaInvocationSchemaRegister();
-            _invocationSchemaRegister.Discover(assemblies);
+            this._schemaRegister = new CommandsSchemaRegister();
+            _schemaRegister.Discover(assemblies);
             _commands = new List<CommandEntry>();
-            foreach (var c in _invocationSchemaRegister)
+            foreach (var c in _schemaRegister)
                 _commands.Add(new CommandEntry(c.Type, c));
         }
 

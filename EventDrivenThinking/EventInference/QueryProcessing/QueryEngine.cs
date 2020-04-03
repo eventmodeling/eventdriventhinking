@@ -6,13 +6,16 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-
+using EventDrivenThinking.App.Configuration.EventStore;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Core;
+using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.EventInference.Subscriptions;
+using EventDrivenThinking.Integrations.EventStore;
 using EventDrivenThinking.Logging;
 using EventDrivenThinking.Ui;
 using EventDrivenThinking.Utils;
@@ -36,6 +39,20 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
     /// <typeparam name="TModel"></typeparam>l
     public class QueryEngine<TModel> : IQueryEngine<TModel> where TModel : IModel
     {
+        class QueryEngineHandlerFactory : EventHandlerFactoryBase
+        {
+            public QueryEngineHandlerFactory(QueryEngine<TModel> queryEngine)
+            {
+                throw new NotImplementedException();
+            }
+
+            public override TypeCollection SupportedEventTypes { get; }
+            public override IEventHandler<TEvent> CreateHandler<TEvent>()
+            {
+                throw new NotImplementedException();
+            }
+        }
+
         class ProjectionStreamInfo
         {
             public Guid? PartitionId { get; private set; }
@@ -171,6 +188,11 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
                     streamInfo = new ProjectionStreamInfo(partitionId.Value);
                     // this needs to wait for all events to go though the wire.
                     AsyncAutoResetEvent subscriptionReady = new AsyncAutoResetEvent(false);
+
+                    SubscriptionController<IProjection> f = null;
+                    
+                    await f.SubscribeHandlers(projectionSchema, new QueryEngineHandlerFactory(this));
+
                     streamInfo.Subscription = await _modelProjectionSubscriber.SubscribeToStream(
                         async events => await EnqueueEvents<TQuery, TResult>(streamInfo, schema.ProjectionType, events),
                         subscription => { subscriptionReady.Set(); },

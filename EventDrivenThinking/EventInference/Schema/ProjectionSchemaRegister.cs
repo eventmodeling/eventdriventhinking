@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using EventDrivenThinking.EventInference.Abstractions;
@@ -30,6 +31,7 @@ namespace EventDrivenThinking.EventInference.Schema
     /// </summary>
     public class ProjectionSchemaRegister : IProjectionSchemaRegister
     {
+        [DebuggerDisplay("Type: {Type.Name} Category: {Category}")]
         class ProjectionSchema : IProjectionSchema
         {
             public Type Type { get; private set; }

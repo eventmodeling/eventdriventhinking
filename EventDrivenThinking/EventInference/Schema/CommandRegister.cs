@@ -9,7 +9,7 @@ using EventDrivenThinking.EventInference.CommandHandlers;
 
 namespace EventDrivenThinking.EventInference.Schema
 {
-    public sealed class CommandInvocationSchemaInvocationSchemaRegister : ICommandInvocationSchemaRegister
+    public sealed class CommandsSchemaRegister : ICommandsSchemaRegister
     {
         class CommandSchema : IClientCommandSchema
         {
@@ -39,7 +39,7 @@ namespace EventDrivenThinking.EventInference.Schema
         private readonly List<CommandSchema> _commands;
         private Type[] _types;
 
-        public CommandInvocationSchemaInvocationSchemaRegister()
+        public CommandsSchemaRegister()
         {
             _commands = new List<CommandSchema>();
         }

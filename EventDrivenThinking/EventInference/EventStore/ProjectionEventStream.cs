@@ -9,6 +9,7 @@ using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Integrations.EventStore;
 using EventDrivenThinking.Logging;
 using EventDrivenThinking.Utils;
 using EventStore.Client;
@@ -44,6 +45,7 @@ namespace EventDrivenThinking.EventInference.EventStore
     {
         public Type ProjectionType => typeof(TProjection);
         private readonly IEventStoreFacade _connection;
+        private readonly IEventConverter _eventConveter;
         private readonly IEventDataFactory _eventDataFactory;
         private static readonly ILogger Log = LoggerFactory.For<ProjectionEventStream<TProjection>>();
         private readonly string _projectionStreamName;
@@ -52,10 +54,12 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         private readonly IProjectionSchema<TProjection> _projectionSchema;
         public ProjectionEventStream(IEventStoreFacade connection, 
+            IEventConverter eventConveter,
             IEventDataFactory eventDataFactory,
             IProjectionSchema<TProjection> projectionSchema)
         {
             _connection = connection;
+            _eventConveter = eventConveter;
             _eventDataFactory = eventDataFactory;
             _projectionSchema = projectionSchema;
             _projectionStreamName =
@@ -83,11 +87,8 @@ namespace EventDrivenThinking.EventInference.EventStore
             await foreach (var e in _connection.ReadStreamAsync(Direction.Forwards, streamName, StreamRevision.Start,
                 100, resolveLinkTos: true))
             {
-                var eventString = Encoding.UTF8.GetString(e.Event.Data);
                 var eventType = _projectionSchema.EventByName(e.Event.EventType);
-                var eventInstance = (IEvent) JsonConvert.DeserializeObject(eventString, eventType);
-                var metadata = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
-
+                var (metadata, eventInstance) = _eventConveter.Convert(eventType, e);
                 yield return new EventEnvelope(eventInstance, metadata);
             }
         }

@@ -24,6 +24,7 @@ using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Example.Model.ReadModels.Hotel;
 using EventDrivenThinking.Integrations.EventAggregator;
+using EventDrivenThinking.Integrations.EventStore;
 using EventDrivenThinking.Integrations.Unity;
 using EventDrivenThinking.Reflection;
 using EventDrivenThinking.Ui;
@@ -443,6 +444,7 @@ namespace EventDrivenThinking.Tests.Common
 
             AggregateEventStream<TAggregate> stream = new AggregateEventStream<TAggregate>(
                 await GetEventStoreConnection(), 
+                new EventConverter(), 
                 new EventDataFactory(), new EventMetadataFactory<TAggregate>(), schema, Logger.None);
 
             await stream.Append(aggregateId, Guid.NewGuid(), ev);

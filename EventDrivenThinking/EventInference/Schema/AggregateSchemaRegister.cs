@@ -274,10 +274,10 @@ namespace EventDrivenThinking.EventInference.Schema
 
         }
 
-        
+
+        [DebuggerDisplay("Type: {Type.Name} Category: {Category}")]
         private class AggregateSchema : IAggregateSchema
         {
-            
             public readonly List<CommandSchema> Commands;
             public readonly List<AggregateEventSchema> Events;
 

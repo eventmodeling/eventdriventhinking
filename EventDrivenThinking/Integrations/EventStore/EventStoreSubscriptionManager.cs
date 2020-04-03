@@ -1,9 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Projections;
@@ -17,7 +18,7 @@ namespace EventDrivenThinking.Integrations.EventStore
 {
     public class EventStoreModelProjectionSubscriber<TModel> : IModelProjectionSubscriber<TModel>
     {
-        private static ILogger logger = LoggerFactory.For<EventStoreModelProjectionSubscriber<TModel>>();
+        private static ILogger Log = LoggerFactory.For<EventStoreModelProjectionSubscriber<TModel>>();
         class Subscription : ISubscription
         {
             public string StreamName { get; }
@@ -34,12 +35,14 @@ namespace EventDrivenThinking.Integrations.EventStore
                 _eventStoreSubscription = s;
             }
         }
-        private IEventStoreFacade _connection;
-        private IProjectionSchema _schema;
+        private readonly IEventStoreFacade _connection;
+        private readonly IProjectionSchema _schema;
+        private readonly IEventConverter _eventConverter;
 
-        public EventStoreModelProjectionSubscriber(IEventStoreFacade connection, IProjectionSchemaRegister projectionSchemaRegister)
+        public EventStoreModelProjectionSubscriber(IEventStoreFacade connection, IProjectionSchemaRegister projectionSchemaRegister, IEventConverter eventConverter)
         {
             _connection = connection;
+            _eventConverter = eventConverter;
             _schema = projectionSchemaRegister.FindByModelType(typeof(TModel));
         }
 
@@ -63,12 +66,9 @@ namespace EventDrivenThinking.Integrations.EventStore
                 StreamRevision.Start, 
                 async (subscription, e,ea) =>
                 {
-                    logger.Debug("Received event {EventType}, IsLink: {isLink}", e.Event.EventType, e.Link != null);
-
-                    var eventString = Encoding.UTF8.GetString(e.Event.Data);
-                    var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
+                    Log.Debug("Received event {EventType}, IsLink: {isLink}", e.Event.EventType, e.Link != null);
                     var eventType = _schema.EventByName(e.Event.EventType);
-                    var eventInstance = (IEvent)JsonConvert.DeserializeObject(eventString, eventType);
+                    var (em, eventInstance) = _eventConverter.Convert(eventType, e);
                     await onEvents(new (EventMetadata, IEvent)[] {(em, eventInstance)});
                 },sc => onLiveStarted?.Invoke(s),
                 true);
@@ -79,4 +79,6 @@ namespace EventDrivenThinking.Integrations.EventStore
             return s;
         }
     }
+
+   
 }

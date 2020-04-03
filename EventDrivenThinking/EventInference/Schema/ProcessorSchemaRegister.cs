@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using EventDrivenThinking.EventInference.Abstractions;
@@ -11,6 +12,7 @@ namespace EventDrivenThinking.EventInference.Schema
 {
     public class ProcessorSchemaRegister : IProcessorSchemaRegister
     {
+        [DebuggerDisplay("Type: {Type.Name} Category: {Category}")]
         class ProcessorSchema : IProcessorSchema
         {
             public Type Type { get; private set; }

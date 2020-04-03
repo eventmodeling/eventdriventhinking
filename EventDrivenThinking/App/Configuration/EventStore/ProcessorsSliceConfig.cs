@@ -4,14 +4,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Serilog;
 
 namespace EventDrivenThinking.App.Configuration.EventStore
 {
     public class ProcessorsSliceStartup : IProcessorSliceStartup
     {
         private IProcessorSchema[] _processors;
-
+        private static ILogger Log = LoggerFactory.For<ProcessorsSliceStartup>();
         public void RegisterServices(IServiceCollection serviceCollection)
         {
             foreach (var i in _processors)
@@ -30,9 +32,10 @@ namespace EventDrivenThinking.App.Configuration.EventStore
             //await ActivatorUtilities.CreateInstance<EventStoreSubscriber>(serviceProvider)
             //    .SubscribeAll(_processors.SelectMany(x => x.Events));
 
-
+            Log.Debug("Configuring processor slices:");
             foreach (var i in _processors)
             {
+                Log.Debug($"Processor: {i.Type.Name} in {i.Category}");
                 var coordinator = ActivatorUtilities.CreateInstance<StreamJoinCoordinator>(serviceProvider).WithName(i.Type.Name);
 
                 var subscriptions = i.Events.Select(x => new SubscriptionInfo(x,

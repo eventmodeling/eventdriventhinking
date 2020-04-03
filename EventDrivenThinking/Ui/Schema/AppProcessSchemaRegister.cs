@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -20,6 +21,7 @@ namespace EventDrivenThinking.Ui.Schema
         {
             _items = new List<IAppProcessSchema>();
         }
+        [DebuggerDisplay("Type: {Type.Name} Category: {Category}")]
         class AppProcessSchema : IAppProcessSchema
         {
             private readonly List<IAppProcessReaction> _reactions;

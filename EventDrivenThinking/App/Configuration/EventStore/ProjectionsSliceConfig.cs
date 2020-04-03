@@ -16,7 +16,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
 {
     public class ProjectionsSliceStartup : IProjectionSliceStartup
     {
-        private static ILogger logger = EventDrivenThinking.Logging.LoggerFactory.For<ProjectionsSliceStartup>();
+        private static ILogger Log = EventDrivenThinking.Logging.LoggerFactory.For<ProjectionsSliceStartup>();
 
         private IProjectionSchema[] _projections;
         private bool _withGlobalHandlers;
@@ -28,9 +28,10 @@ namespace EventDrivenThinking.App.Configuration.EventStore
 
         public void RegisterServices(IServiceCollection serviceCollection)
         {
-            foreach(var i in _projections)
+            Log.Debug("Configuring projection slices:");
+            foreach (var i in _projections)
             {
-                logger.Debug("Projection {projectionName} in {category} is using EventStore subscriptions.",  i.Type.Name, i.Category);
+                Log.Debug("Projection {projectionName} in {category} is using EventStore subscriptions.",  i.Type.Name, i.Category);
                 // Maybe IModelProjection Should be rather from TProjection not TModel?
                 serviceCollection.TryAddSingleton(typeof(IModelProjectionSubscriber<>).MakeGenericType(i.ModelType),
                     typeof(EventStoreModelProjectionSubscriber<>).MakeGenericType(i.ModelType));

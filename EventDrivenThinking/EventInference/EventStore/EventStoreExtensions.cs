@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Integrations.EventStore;
 using EventDrivenThinking.Integrations.SignalR;
 using EventDrivenThinking.Reflection;
 using EventStore.Client;
@@ -22,7 +23,8 @@ namespace EventDrivenThinking.EventInference.EventStore
     {
         
         
-        public static IEventStoreFacade BindToSignalHub(this IEventStoreFacade connection,
+        public static async Task BindToSignalHub(this IEventStoreFacade connection,
+            IEventConverter eventConverter,
             IProjectionSchemaRegister projectionSchema,
             IHubContext<EventStoreHub> hubConnection, Serilog.ILogger logger)
         {
@@ -30,10 +32,8 @@ namespace EventDrivenThinking.EventInference.EventStore
             {
                 var configuratorType = typeof(SignalRConfigurator<>).MakeGenericType(e);
                 var configurator = Ctor<ISignalRConfigurator>.Create(configuratorType);
-                configurator.Configure(connection, hubConnection, logger);
+                await configurator.Configure(connection, eventConverter, hubConnection, logger);
             }
-
-            return connection;
         }
 
         /// <summary>
@@ -44,31 +44,29 @@ namespace EventDrivenThinking.EventInference.EventStore
             where TEvent : IEvent
         {
             private IHubContext<EventStoreHub> _connection;
-            private Serilog.ILogger _logger;
+            private Serilog.ILogger Log;
+            private IEventConverter _converter;
 
-            public void Configure(IEventStoreFacade connection,
+            public async Task Configure(IEventStoreFacade connection, 
+                IEventConverter eventConverter,
                 IHubContext<EventStoreHub> hubConnection, Serilog.ILogger logger)
             {
-                _logger = logger;
-                _logger.Information("Subscribed for {eventName} for pushing to signalR clients.", typeof(TEvent).Name);
+                Log = logger;
+                _converter = eventConverter;
                 var stream = $"$et-{typeof(TEvent).Name}";
                 this._connection = hubConnection;
-                var t = Task.Run(() => connection.SubscribeToStreamAsync(stream, OnReadEvent, true));
-                t.Wait();
+                var t = await connection.SubscribeToStreamAsync(stream, StreamRevision.Start, OnReadEvent, null, true);
+                
+                Log.Information("Subscribed for {eventName} for pushing to signalR clients.", typeof(TEvent).Name);
             }
             private async Task OnReadEvent(IStreamSubscription arg1, ResolvedEvent arg2, CancellationToken t)
             {
-                var eventData = Encoding.UTF8.GetString(arg2.Event.Data);
-                var metaData = Encoding.UTF8.GetString(arg2.Event.Metadata);
-
-                var ev = JsonConvert.DeserializeObject<TEvent>(eventData);
-                var m = JsonConvert.DeserializeObject<EventMetadata>(metaData);
-
+                var (m, ev) = _converter.Convert<TEvent>(arg2);
                 var groupName = typeof(TEvent).FullName.Replace(".","-");
                 try
                 {
                     await _connection.Clients.All.SendCoreAsync(groupName, new object[]{ m, ev});
-                    _logger.Information("SignalR hub send event {eventName} to it's clients.", typeof(TEvent).Name);
+                    Log.Information("SignalR hub send event {eventName} to it's clients.", typeof(TEvent).Name);
                 }
                 catch (Exception ex)
                 {
@@ -79,7 +77,10 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         private interface ISignalRConfigurator
         {
-            void Configure(IEventStoreFacade aggregator, IHubContext<EventStoreHub> hubConnection, Serilog.ILogger logger);
+            Task Configure(IEventStoreFacade aggregator,
+                IEventConverter eventConverter,
+                IHubContext<EventStoreHub> hubConnection, 
+                Serilog.ILogger logger);
 
         }
         

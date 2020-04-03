@@ -8,7 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EventDrivenThinking.App.Configuration
 {
-    public class CommandHandlerInvocationSliceStartup : ICommandInvocationSliceStartup
+    public class CommandHandlerInvocationSliceStartup : ICommandsSliceStartup
     {
         public CommandHandlerInvocationSliceStartup()
         {

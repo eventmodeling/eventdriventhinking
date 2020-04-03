@@ -15,6 +15,7 @@ namespace EventDrivenThinking.EventInference.Schema
         private readonly List<QuerySchema> _querySchema;
         private readonly Dictionary<Type, QuerySchema> _queryTypeIndex;
 
+        [DebuggerDisplay("Type: {Type.Name} Category: {Category}")]
         class QuerySchema : IQuerySchema
         {
             public Type Type { get; }

@@ -12,8 +12,10 @@ namespace EventDrivenThinking.App.Configuration
         private readonly Lazy<AggregateConfig> _aggregates;
         private readonly Lazy<ProjectionsConfig> _projections;
         private readonly Lazy<ProcessorsConfig> _processors;
-        private readonly Lazy<CommandInvocationsConfig> _commandInvocations;
-        private readonly Lazy<QueryConfig> _queryConfig;
+        private readonly Lazy<CommandsConfig> _commands;
+        private readonly Lazy<EventsConfig> _events;
+        private readonly Lazy<QueryConfig> _queries;
+
         internal IPartitionSchemaRegister SchemaRegister { get; }
         internal IServiceExtensionProvider ServiceExtensionProvider { get; }
         internal ILogger Logger { get; }
@@ -28,8 +30,9 @@ namespace EventDrivenThinking.App.Configuration
             _aggregates = new Lazy<AggregateConfig>(() => WriteThrough(new AggregateConfig(this)));
             _processors = new Lazy<ProcessorsConfig>(() => WriteThrough(new ProcessorsConfig(this)));
             _projections = new Lazy<ProjectionsConfig>(() => WriteThrough(new ProjectionsConfig(this)));
-            _commandInvocations = new Lazy<CommandInvocationsConfig>(() => WriteThrough(new CommandInvocationsConfig(this)));
-            _queryConfig = new Lazy<QueryConfig>(() => WriteThrough(new QueryConfig(this)));
+            _commands = new Lazy<CommandsConfig>(() => WriteThrough(new CommandsConfig(this)));
+            _queries = new Lazy<QueryConfig>(() => WriteThrough(new QueryConfig(this)));
+            _events = new Lazy<EventsConfig>(() => WriteThrough(new EventsConfig(this)));
             Configs = new List<IStageConfig>();
         }
 
@@ -67,8 +70,10 @@ namespace EventDrivenThinking.App.Configuration
 
         public ProcessorsConfig Processors => _processors.Value;
 
-        public CommandInvocationsConfig CommandInvocations => _commandInvocations.Value;
+        public CommandsConfig Commands => _commands.Value;
 
-        public QueryConfig Queries => _queryConfig.Value;
+        public EventsConfig Events => _events.Value;
+
+        public QueryConfig Queries => _queries.Value;
     }
 }

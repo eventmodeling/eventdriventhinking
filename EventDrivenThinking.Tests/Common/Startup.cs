@@ -49,9 +49,9 @@ namespace EventDrivenThinking.Tests.Common
 
                 c.Slices.SelectAll()
                     .Aggregates.BindCarter().WriteToEventStore()
-                    .Projections.SubscribeFromEventStore()
+                    //.Projections.SubscribeFromEventStore()
                     .Processors.SubscribeFromEventStore()
-                    .CommandInvocations.ToCommandHandler();
+                    .Commands.ToCommandHandler();
             });
 
             services.AddSingleton<IEventStoreFacade>((serviceProvider) =>

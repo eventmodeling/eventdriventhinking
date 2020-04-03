@@ -15,7 +15,7 @@ using Serilog;
 
 namespace EventDrivenThinking.App.Configuration
 {
-    public class RestCommandInvocationSliceStartup : ICommandInvocationSliceStartup
+    public class RestCommandsSliceStartup : ICommandsSliceStartup
     {
         private IClientCommandSchema[] _commands;
 

@@ -9,6 +9,7 @@ using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.QueryProcessing;
 using EventDrivenThinking.EventInference.SessionManagement;
 using EventDrivenThinking.Integrations.Carter;
+using EventDrivenThinking.Integrations.EventStore;
 using EventDrivenThinking.Integrations.SignalR;
 using EventDrivenThinking.Ui;
 using Microsoft.Extensions.DependencyInjection;
@@ -52,14 +53,14 @@ namespace EventDrivenThinking.App.Configuration
             _collection.TryAddSingleton(sp => _config.Services.AggregateSchemaRegister);
             _collection.TryAddSingleton(sp => _config.Services.ProjectionSchemaRegister);
             _collection.TryAddSingleton(sp => _config.Services.ProcessorSchemaRegister);
-            _collection.TryAddSingleton(sp => _config.Services.CommandInvocationRegister);
+            _collection.TryAddSingleton(sp => _config.Services.CommandsRegister);
             _collection.TryAddSingleton(sp => _config.Services.QuerySchemaRegister);
 
             _collection.TryAddSingleton<ICommandDispatcher, CommandDispatcher>();
             _collection.TryAddSingleton<IEventHandlerDispatcher, EventHandlerDispatcher>();
             _collection.TryAddSingleton<IEventDataFactory, EventDataFactory>();
             _collection.TryAddSingleton<IClientSessionRegister, ClientSessionRegister>();
-
+            _collection.TryAddSingleton<IEventConverter, EventConverter>();
             _collection.TryAddSingleton<ISessionManager, SessionManager>();
             _collection.TryAddScoped<SessionContext>();
             _collection.TryAddScoped<IHttpSessionManager>(sp => sp.GetRequiredService<SessionContext>());

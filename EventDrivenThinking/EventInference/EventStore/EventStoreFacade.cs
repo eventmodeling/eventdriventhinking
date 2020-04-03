@@ -20,6 +20,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 {
     public class EventStoreFacade : IEventStoreFacade
     {
+        
         private static readonly Serilog.ILogger Log = LoggerFactory.For<EventStoreFacade>();
         private readonly HttpEventStoreChannel _httpClient;
         private readonly TcpEventStoreChannel _tcpClient;
@@ -39,7 +40,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 
             var tcp = EventStoreConnection.Create(tcpSettings, tcpUri);
             tcp.ConnectAsync().GetAwaiter().GetResult();
-            Debug.WriteLine("TCP: Connected.");
+            Log.Debug("TCP: Connected.");
 
 
             var httpSettings = new EventStoreClientSettings();
@@ -68,7 +69,9 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         public void Dispose()
         {
-            _client.Dispose();
+            Log.Debug("Disposing EventStore connections....");
+            _tcpClient.Dispose();
+            _httpClient.Dispose();
         }
 
         public Task<DeleteResult> SoftDeleteAsync(string streamName, StreamRevision expectedRevision, Action<EventStoreClientOperationOptions> configureOperationOptions = null,
@@ -114,11 +117,15 @@ namespace EventDrivenThinking.EventInference.EventStore
         {
             try
             {
-                await foreach (var i in _httpClient.ReadStreamAsync(Direction.Backwards,
-                    streamName,
-                    StreamRevision.End, 1, null, true))
+                var m = await _httpClient.GetStreamMetadataAsync(streamName);
+                if (m.MetastreamRevision.HasValue)
                 {
-                    return  i.Event.Position ;
+                    await foreach (var i in _httpClient.ReadStreamAsync(Direction.Backwards,
+                        streamName,
+                        StreamRevision.End, 1, null, true))
+                    {
+                        return i.Event.Position;
+                    }
                 }
             }
             catch (StreamNotFoundException ex)
@@ -150,14 +157,21 @@ namespace EventDrivenThinking.EventInference.EventStore
             return _client.SubscribeToAllAsync(start, eventAppeared, resolveLinkTos, subscriptionDropped, filterOptions, checkpointReached, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);
         }
 
-        public Task<IStreamSubscription> SubscribeToStreamAsync(string streamName, Func<IStreamSubscription, ResolvedEvent, CancellationToken, Task> eventAppeared, bool resolveLinkTos = false,
-            Action<IStreamSubscription, SubscriptionDroppedReason, Exception> subscriptionDropped = null, Action<EventStoreClientOperationOptions> configureOperationOptions = null, UserCredentials userCredentials = null,
+        public Task<IStreamSubscription> SubscribeToStreamAsync(string streamName, 
+            Func<IStreamSubscription, ResolvedEvent, CancellationToken, Task> eventAppeared, 
+            bool resolveLinkTos = false,
+            Action<IStreamSubscription, SubscriptionDroppedReason, Exception> subscriptionDropped = null, 
+            Action<EventStoreClientOperationOptions> configureOperationOptions = null, 
+            UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken())
         {
+            Log.Debug("SubscribeToStreamAsync {streamName}", streamName);
+
             return _client.SubscribeToStreamAsync(streamName, eventAppeared, resolveLinkTos, subscriptionDropped, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);
         }
 
-        public async Task<IStreamSubscription> SubscribeToStreamAsync(string streamName, StreamRevision start,
+        public async Task<IStreamSubscription> SubscribeToStreamAsync(string streamName, 
+            StreamRevision start,
             Func<IStreamSubscription, ResolvedEvent, CancellationToken, Task> eventAppeared,
             Action<IStreamSubscription> onLiveProcessingStarted, bool resolveLinkTos = false,
             Action<IStreamSubscription, SubscriptionDroppedReason, Exception> subscriptionDropped = null,
