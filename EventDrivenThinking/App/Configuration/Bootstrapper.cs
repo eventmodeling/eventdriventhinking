@@ -57,6 +57,7 @@ namespace EventDrivenThinking.App.Configuration
             _collection.TryAddSingleton(sp => _config.Services.CommandsRegister);
             _collection.TryAddSingleton(sp => _config.Services.QuerySchemaRegister);
 
+            _collection.TryAddSingleton<IProjectionEventStreamRepository, ProjectionEventStreamRepository>();
             _collection.TryAddSingleton<IProjectionSubscriptionController, ProjectionSubscriptionController>();
             _collection.TryAddSingleton<IProjectionStreamSubscriptionController, ProjectionStreamSubscriptionController>();
 

@@ -32,7 +32,7 @@ namespace EventDrivenThinking.Integrations.EventStore
             {
                 return other.Merge(this);
             }
-            else return new MultiEventSubscriptionProvider(this, _eventStore,_eventConverter);
+            else return new MultiEventSubscriptionProvider(this, _eventStore,_eventConverter).Merge(other);
         }
 
         public abstract Task Subscribe(IProjectionSchema schema, IEventHandlerFactory factory, object[] args = null);
