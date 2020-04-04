@@ -4,6 +4,7 @@ using System.Linq;
 using System.Runtime.InteropServices.ComTypes;
 using System.Threading;
 using System.Threading.Tasks;
+using EventDrivenThinking.Logging;
 using EventDrivenThinking.Utils;
 using EventStore.Client;
 using EventStore.Client.PersistentSubscriptions;
@@ -166,13 +167,19 @@ namespace EventDrivenThinking.EventInference.EventStore
     }
     class TcpEventStoreChannel : IEventStoreChannel
     {
+        private static Serilog.ILogger Log = LoggerFactory.For<TcpEventStoreChannel>();
         private readonly IEventStoreConnection _client;
 
         public TcpEventStoreChannel(IEventStoreConnection tcp)
         {
             _client = tcp;
-            //UsersManager um = new UsersManager();
+            _client.Reconnecting += (sender, args) => Log.Debug("Reconnecting");
+            _client.ErrorOccurred += (sender, args) => Log.Error(args.Exception, "Error occured");
+            _client.Connected += (sender, args) => Log.Debug("Connected");
+            _client.AuthenticationFailed += (sender, args) => Log.Information("AuthenticationFailed");
             
+            //UsersManager um = new UsersManager();
+
         }
 
         public async Task<WriteResult> AppendToStreamAsync(string streamName, StreamRevision expectedRevision, IEnumerable<EventData> eventData,
@@ -261,15 +268,16 @@ namespace EventDrivenThinking.EventInference.EventStore
             UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken())
         {
+            var start = revision.Convert();
             if (direction == Direction.Forwards)
             {
-                var items = await _client.ReadStreamEventsForwardAsync(streamName, revision.Convert(), (int) count, resolveLinkTos);
+                var items = await _client.ReadStreamEventsForwardAsync(streamName, start, (int) count, resolveLinkTos);
                 foreach(var i in items.Events)
                     yield return new ResolvedEvent(i.Event.Convert(i.OriginalPosition), i.Link.Convert(i.OriginalPosition), i.OriginalPosition.ConvertCommit());
             }
             else
             {
-                var items = await _client.ReadStreamEventsBackwardAsync(streamName, revision.Convert(), (int)count, resolveLinkTos);
+                var items = await _client.ReadStreamEventsBackwardAsync(streamName, start, (int)count, resolveLinkTos);
                 foreach (var i in items.Events)
                     yield return new ResolvedEvent(i.Event.Convert(i.OriginalPosition), i.Link.Convert(i.OriginalPosition), i.OriginalPosition.ConvertCommit());
             }
@@ -374,6 +382,9 @@ namespace EventDrivenThinking.EventInference.EventStore
             var result = await _client.SubscribeToStreamAsync(streamName, resolveLinkTos,
                 async (s, r) =>
                 {
+                    if (r.Event.EventType.StartsWith("$")) // most likely we did something wrong.
+                        return;
+
                     if (subscription == null)
                         subscription = new TcpSubscription(s.Dispose);
 

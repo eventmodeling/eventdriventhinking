@@ -15,8 +15,16 @@ namespace EventDrivenThinking.Utils
         
         public TypeCollection(IEnumerable<Type> types)
         {
-            _types = types is Type[] ? (Type[])types :  types.ToArray();
+            _types = types is Type[] ? (Type[])types :  types.Distinct().ToArray();
             _hash = new Lazy<Guid>(OnComputeHash);
+        }
+        public bool Contains<T>()
+        {
+            return Contains(typeof(T));
+        }
+        public bool Contains(Type t)
+        {
+            return _types.Contains(t);
         }
         public static explicit operator TypeCollection(Type[] data)
         {
@@ -33,7 +41,9 @@ namespace EventDrivenThinking.Utils
 
         public IEnumerator<Type> GetEnumerator()
         {
-            return (IEnumerator <Type>)_types.GetEnumerator();
+            for (var index = 0; index < _types.Length; index++)
+                yield return _types[index];
+            
         }
 
         IEnumerator IEnumerable.GetEnumerator()

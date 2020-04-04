@@ -25,7 +25,7 @@ namespace EventDrivenThinking.EventInference.EventStore
         private readonly HttpEventStoreChannel _httpClient;
         private readonly TcpEventStoreChannel _tcpClient;
         private readonly IEventStoreChannel _client;
-        
+        private IEventStoreConnection _tcp;
         public UserCredentials DefaultCredentials { get; private set; }
 
         public EventStoreFacade(string httpUrl, string tcpUrl, string user, string password)
@@ -34,12 +34,16 @@ namespace EventDrivenThinking.EventInference.EventStore
             
             ConnectionSettings tcpSettings = ConnectionSettings.Create()
                 .UseSslConnection(false)
+                .KeepReconnecting()
                 .KeepRetrying()
+                .LimitReconnectionsTo(1000)
+                .LimitRetriesForOperationTo(100)
+                .WithConnectionTimeoutOf(TimeSpan.FromSeconds(5))
                 .SetDefaultUserCredentials(new ApiCredentials(user, password))
                 .Build();
 
-            var tcp = EventStoreConnection.Create(tcpSettings, tcpUri);
-            tcp.ConnectAsync().GetAwaiter().GetResult();
+            this._tcp = EventStoreConnection.Create(tcpSettings, tcpUri);
+            _tcp.ConnectAsync().GetAwaiter().GetResult();
             Log.Debug("TCP: Connected.");
 
 
@@ -47,7 +51,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             httpSettings.ConnectivitySettings.Address = new Uri(httpUrl);
             DefaultCredentials = new UserCredentials(user, password);
             _httpClient = new HttpEventStoreChannel(new EventStoreClient(httpSettings));
-            _tcpClient = new TcpEventStoreChannel(tcp);
+            _tcpClient = new TcpEventStoreChannel(_tcp);
 
             _client = _tcpClient;
         }
@@ -117,15 +121,11 @@ namespace EventDrivenThinking.EventInference.EventStore
         {
             try
             {
-                var m = await _httpClient.GetStreamMetadataAsync(streamName);
-                if (m.MetastreamRevision.HasValue)
-                {
-                    await foreach (var i in _httpClient.ReadStreamAsync(Direction.Backwards,
+                await foreach (var i in _httpClient.ReadStreamAsync(Direction.Backwards,
                         streamName,
                         StreamRevision.End, 1, null, true))
-                    {
-                        return i.Event.Position;
-                    }
+                {
+                    return i.Event.Position;
                 }
             }
             catch (StreamNotFoundException ex)

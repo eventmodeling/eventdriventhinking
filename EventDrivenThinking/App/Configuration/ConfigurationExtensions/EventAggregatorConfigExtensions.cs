@@ -16,7 +16,11 @@ namespace EventDrivenThinking.App.Configuration
         {
             return config.Merge(new ProcessorsSliceStartup());
         }
-        
+        public static FeaturePartition UseEventAggregator(this EventsConfig config)
+        {
+            return config.Merge(new ProjectionEventSliceStartup())
+                .Events.Merge(new ProcessorEventSliceStartup());
+        }
         public static FeaturePartition ToRest(this CommandsConfig config)
         {
             return config.Merge(new RestCommandsSliceStartup());

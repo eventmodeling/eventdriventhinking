@@ -39,18 +39,67 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
     /// <typeparam name="TModel"></typeparam>l
     public class QueryEngine<TModel> : IQueryEngine<TModel> where TModel : IModel
     {
-        class QueryEngineHandlerFactory : EventHandlerFactoryBase
+        class QueryEventHandler<TQuery, TEvent, TResult> : IEventHandler<TEvent> 
+            where TEvent : IEvent
+            where TQuery : IQuery<TModel, TResult>
         {
-            public QueryEngineHandlerFactory(QueryEngine<TModel> queryEngine)
+            private readonly IQueryHandler<TQuery, TModel, TResult> _queryHandler;
+            private readonly IEventHandler<TEvent> _projectionHandler;
+            private readonly TModel _model;
+            private readonly LiveQuery<TQuery,TResult> _liveQuery;
+
+            public QueryEventHandler(IQueryHandler<TQuery, TModel, TResult> queryHandler, IEventHandler<TEvent> projectionHandler,
+                TModel model, LiveQuery<TQuery, TResult> liveQuery)
             {
-                throw new NotImplementedException();
+                _queryHandler = queryHandler;
+                _projectionHandler = projectionHandler;
+                _model = model;
+                _liveQuery = liveQuery;
+            }
+
+            public async Task Execute(EventMetadata m, TEvent ev)
+            {
+                await _projectionHandler.Execute(m, ev);
+
+                var result = _queryHandler.Execute(_model, _liveQuery.Query);
+
+                _liveQuery.OnResult(result);
+            }
+        }
+        class QueryEngineHandlerFactory<TQuery, TResult> : EventHandlerFactoryBase 
+            where TQuery : IQuery<TModel, TResult>
+        {
+            private readonly QueryEngine<TModel> _queryEngine;
+            private readonly ProjectionStreamInfo _streamInfo;
+            private readonly LiveQuery<TQuery, TResult> _liveQuery;
+            private readonly IProjectionSchema _projectionSchema;
+
+            public QueryEngineHandlerFactory(QueryEngine<TModel> queryEngine,
+                ProjectionStreamInfo streamInfo,
+                LiveQuery<TQuery, TResult> liveQuery, IProjectionSchema projectionSchema)
+            {
+                _queryEngine = queryEngine;
+                _streamInfo = streamInfo;
+                _liveQuery = liveQuery;
+                _projectionSchema = projectionSchema;
+                SupportedEventTypes = new TypeCollection(_projectionSchema.Events);
             }
 
             public override TypeCollection SupportedEventTypes { get; }
             public override IEventHandler<TEvent> CreateHandler<TEvent>()
             {
-                throw new NotImplementedException();
+                var queryHandler = _queryEngine.CreateQueryHandler<TQuery, TResult>();
+                var projectionHandler = _queryEngine.CreateEventHandler<TEvent>(_projectionSchema);
+                return new QueryEventHandler<TQuery, TEvent, TResult>(queryHandler, projectionHandler,
+                    _queryEngine.GetModel(), _liveQuery);
             }
+        }
+
+        private IEventHandler<TEvent> CreateEventHandler<TEvent>(IProjectionSchema projectionSchema)
+            where TEvent : IEvent
+        {
+            var projectionHandlerType = typeof(ProjectionEventHandler<,>).MakeGenericType(projectionSchema.Type, typeof(TEvent));
+            return (IEventHandler<TEvent>)ActivatorUtilities.CreateInstance(_serviceProvider, projectionHandlerType, GetModel());
         }
 
         class ProjectionStreamInfo
@@ -133,30 +182,28 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
         private readonly IQuerySchemaRegister _querySchemaRegister;
         private readonly IProjectionSchemaRegister _projectionSchemaRegister;
         
-        private readonly IModelProjectionSubscriber<TModel> _modelProjectionSubscriber;
+        private readonly IProjectionSubscriptionController _subscriptionController;
         
         private readonly Guid _rootPartitionId = Guid.NewGuid();
         public QueryEngine(IServiceProvider serviceProvider, 
-            IQuerySchemaRegister _querySchemaRegister,
-            IProjectionSchemaRegister _projectionSchemaRegister,
-            IModelProjectionSubscriber<TModel> modelProjectionSubscriber,
+            IQuerySchemaRegister querySchemaRegister,
+            IProjectionSchemaRegister projectionSchemaRegister,
+            IProjectionSubscriptionController subscriptionController,
             DispatcherQueue dispatcherQueue)
         {
             _serviceProvider = serviceProvider;
-            this._querySchemaRegister = _querySchemaRegister;
-            this._projectionSchemaRegister = _projectionSchemaRegister;
-            
-            
-            _modelProjectionSubscriber = modelProjectionSubscriber;
-            this._dispatcherQueue = dispatcherQueue;
-
+            _querySchemaRegister = querySchemaRegister;
+            _projectionSchemaRegister = projectionSchemaRegister;
+            _subscriptionController = subscriptionController;
+            _dispatcherQueue = dispatcherQueue;
 
             _liveQueries = new ConcurrentDictionary<IQuery, ILiveQuery>();
             _partitions = new ConcurrentDictionary<Guid, ProjectionStreamInfo>();
+            
             Log.Debug("QueryEngine for model {modelName} created.", typeof(TModel).Name);
         }
 
-        public TModel CreateOrGet()
+        public TModel GetModel()
         {
             if (_model == null)
             {
@@ -164,7 +211,13 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             }
             return _model;
         }
-        
+
+
+        private IQueryHandler<TQuery, TModel, TResult> CreateQueryHandler<TQuery, TResult>()
+        {
+            return ActivatorUtilities.GetServiceOrCreateInstance<IQueryHandler<TQuery, TModel, TResult>>(
+                _serviceProvider);
+        }
 
         public async Task<ILiveResult<TResult>> Execute<TQuery, TResult>(TQuery query, QueryOptions options = null)
             where TQuery : IQuery<TModel, TResult>
@@ -177,7 +230,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             var queryParitioner =  _serviceProvider.GetService<IEnumerable<IQueryPartitioner<TQuery>>>()
                 .SingleOrDefault();
             
-            var partitionId = queryParitioner?.CalculatePartition(CreateOrGet(), query);
+            var partitionId = queryParitioner?.CalculatePartition(GetModel(), query);
             
             LiveQuery<TQuery, TResult> liveQuery = new LiveQuery<TQuery,  TResult>(query, partitionId, schema, OnQueryDispose, options);
 
@@ -189,25 +242,25 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
                     // this needs to wait for all events to go though the wire.
                     AsyncAutoResetEvent subscriptionReady = new AsyncAutoResetEvent(false);
 
-                    SubscriptionController<IProjection> f = null;
-                    
-                    await f.SubscribeHandlers(projectionSchema, new QueryEngineHandlerFactory(this));
 
-                    streamInfo.Subscription = await _modelProjectionSubscriber.SubscribeToStream(
-                        async events => await EnqueueEvents<TQuery, TResult>(streamInfo, schema.ProjectionType, events),
-                        subscription => { subscriptionReady.Set(); },
-                        partitionId.Value);
-                    
-                    _partitions.TryAdd(partitionId.Value, streamInfo);
+                    var handlerFactory = CreateHandlerFactory(streamInfo, liveQuery, projectionSchema);
+                    await _subscriptionController.SubscribeHandlers(projectionSchema, handlerFactory, partitionId.Value);
 
-                    Log.Debug("Live query {queryName} subscribed for events in partition {partitionId} stream of projection {projectionName}", typeof(TQuery).Name, partitionId,schema.ProjectionType.Name);
-                    subscriptionReady.Wait();
-                    Thread.Sleep(100);
+                    //streamInfo.Subscription = await _modelProjectionSubscriber.SubscribeToStream(
+                    //    async events => await EnqueueEvents<TQuery, TResult>(streamInfo, schema.ProjectionType, events),
+                    //    subscription => { subscriptionReady.Set(); },
+                    //    partitionId.Value);
+                    
+                    //_partitions.TryAdd(partitionId.Value, streamInfo);
+
+                    //Log.Debug("Live query {queryName} subscribed for events in partition {partitionId} stream of projection {projectionName}", typeof(TQuery).Name, partitionId,schema.ProjectionType.Name);
+                    //subscriptionReady.Wait();
+                    //Thread.Sleep(100);
                 }
                 
                 // we have subscribed to partition before. Just need to return result and execute the handler.
                 var handler = _serviceProvider.GetService<IQueryHandler<TQuery, TModel, TResult>>();
-                var result = handler.Execute(CreateOrGet(), query);
+                var result = handler.Execute(GetModel(), query);
                 liveQuery.OnResult(result);
 
                 streamInfo.AssociatedQueries.TryAdd(liveQuery.Query, liveQuery);
@@ -219,23 +272,28 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
                 if (!_partitions.TryGetValue(_rootPartitionId, out ProjectionStreamInfo streamInfo))
                 {
                     streamInfo = new ProjectionStreamInfo(_rootPartitionId, true);
+
+                    var handlerFactory = CreateHandlerFactory(streamInfo, liveQuery, projectionSchema);
                     // this needs to wait for all events to go though the wire.
-                    AsyncAutoResetEvent subscriptionReady = new AsyncAutoResetEvent(false);
-                    streamInfo.Subscription = await _modelProjectionSubscriber.SubscribeToStream(
-                        async events => await EnqueueEvents<TQuery, TResult>(streamInfo, schema.ProjectionType, events),
-                        subscription => { subscriptionReady.Set(); },
-                        null);
+                    //AsyncAutoResetEvent subscriptionReady = new AsyncAutoResetEvent(false);
+
+                    await _subscriptionController.SubscribeHandlers(projectionSchema, handlerFactory);
+
+                    //streamInfo.Subscription = await _subscriptionController.SubscribeToStream(
+                    //    async events => await EnqueueEvents<TQuery, TResult>(streamInfo, schema.ProjectionType, events),
+                    //    subscription => { subscriptionReady.Set(); },
+                    //    null);
 
                     _partitions.TryAdd(_rootPartitionId, streamInfo);
 
-                    subscriptionReady.Wait();
+                    //subscriptionReady.Wait();
                     Thread.Sleep(100);
                     Log.Debug("Live query {queryName} subscribed for events in root stream of projection {projectionName}", typeof(TQuery).Name, schema.ProjectionType.Name);
                 }
 
                 // we have subscribed to partition before. Just need to return result and execute the handler.
                 var handler = _serviceProvider.GetService<IQueryHandler<TQuery, TModel, TResult>>();
-                var result = handler.Execute(CreateOrGet(), query);
+                var result = handler.Execute(GetModel(), query);
                 liveQuery.OnResult(result);
 
                 streamInfo.AssociatedQueries.TryAdd(liveQuery.Query, liveQuery);
@@ -247,6 +305,12 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
 
 
             return liveQuery;
+        }
+
+        private IEventHandlerFactory CreateHandlerFactory<TQuery, TResult>(ProjectionStreamInfo streamInfo,
+            LiveQuery<TQuery, TResult> liveQuery, IProjectionSchema projectionSchema) where TQuery : IQuery<TModel, TResult>
+        {
+            return new QueryEngineHandlerFactory<TQuery,TResult>(this, streamInfo, liveQuery, projectionSchema);
         }
 
         private readonly DispatcherQueue _dispatcherQueue;
@@ -276,14 +340,14 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             else
                 Log.Debug("Partition {streamInfo.PartitionId} received events on {projectionName}",streamInfo.PartitionId, projectionType.Name);
 
-            var projection = (IProjection<TModel>) ActivatorUtilities.CreateInstance(_serviceProvider, projectionType, CreateOrGet());
+            var projection = (IProjection<TModel>) ActivatorUtilities.CreateInstance(_serviceProvider, projectionType, GetModel());
             await projection.Execute(ev);
             
             foreach (LiveQuery<TQuery, TResult> i in streamInfo.AssociatedQueries.Values.OfType<LiveQuery<TQuery, TResult>>())
             {
                 Log.Debug("Found live query to update {queryName}", i.Query.GetType().Name);
                 var handler = _serviceProvider.GetService<IQueryHandler<TQuery, TModel, TResult>>();
-                var result = handler.Execute(CreateOrGet(), i.Query);
+                var result = handler.Execute(GetModel(), i.Query);
 
                 i.OnUpdate(result);
             }

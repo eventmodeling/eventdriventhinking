@@ -8,6 +8,7 @@ using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.QueryProcessing;
 using EventDrivenThinking.EventInference.SessionManagement;
+using EventDrivenThinking.EventInference.Subscriptions;
 using EventDrivenThinking.Integrations.Carter;
 using EventDrivenThinking.Integrations.EventStore;
 using EventDrivenThinking.Integrations.SignalR;
@@ -55,6 +56,10 @@ namespace EventDrivenThinking.App.Configuration
             _collection.TryAddSingleton(sp => _config.Services.ProcessorSchemaRegister);
             _collection.TryAddSingleton(sp => _config.Services.CommandsRegister);
             _collection.TryAddSingleton(sp => _config.Services.QuerySchemaRegister);
+
+            _collection.TryAddSingleton<IProjectionSubscriptionController, ProjectionSubscriptionController>();
+            _collection.TryAddSingleton<IProjectionStreamSubscriptionController, ProjectionStreamSubscriptionController>();
+
 
             _collection.TryAddSingleton<ICommandDispatcher, CommandDispatcher>();
             _collection.TryAddSingleton<IEventHandlerDispatcher, EventHandlerDispatcher>();

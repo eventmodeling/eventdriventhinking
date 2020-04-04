@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.EventInference.Subscriptions;
 using EventDrivenThinking.Integrations.EventStore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -51,32 +50,41 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         public async Task ConfigureServices(IServiceProvider serviceProvider)
         {
             if (_withGlobalHandlers)
+            {
+                IProjectionSubscriptionController controller =
+                    serviceProvider.GetRequiredService<IProjectionSubscriptionController>();
+
+                IProjectionStreamSubscriptionController streamController =
+                    serviceProvider.GetRequiredService<IProjectionStreamSubscriptionController>();
+
                 foreach (var i in _projections)
                 {
+                    await controller.SubscribeHandlers(i, new ProjectionEventHandlerFactory(serviceProvider, i));
+                    await streamController.SubscribeHandlers(i, new ProjectionStreamEventHandlerFactory(serviceProvider,i)); // this will load checkpoints.
                     // When subscribing a projection
                     // We need to know how to do it. (1)
                     // At the end projection need to also know
                     // where to store it's events (2)
 
                     // Client & Server subscribe to the stream?
-                    string projectionStreamName = $"{ServiceConventions.GetCategoryFromNamespace(i.Type.Namespace)}Projection-{i.ProjectionHash}";
+                    //string projectionStreamName = $"{ServiceConventions.GetCategoryFromNamespace(i.Type.Namespace)}Projection-{i.ProjectionHash}";
 
-                    var stream = (IProjectionEventStream)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider,
-                        typeof(IProjectionEventStream<>).MakeGenericType(i.Type));
+                    //var stream = (IProjectionEventStream)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider,
+                    //    typeof(IProjectionEventStream<>).MakeGenericType(i.Type));
 
-                    var factory = ActivatorUtilities.CreateInstance<SubscriptionFactory>(serviceProvider);
-                    var streamSubscriptions = i.Events.Select(x => new SubscriptionInfo(x,
-                            typeof(ProjectionStreamEventHandler<,>).MakeGenericType(i.Type, x), i.Type))
-                        .ToArray();
-                    var lastPosition = await stream.LastPosition();
-                    await factory.SubscribeToStreams(lastPosition, streamSubscriptions);
+                    //var factory = ActivatorUtilities.CreateInstance<SubscriptionFactory>(serviceProvider);
+                    //var streamSubscriptions = i.Events.Select(x => new SubscriptionInfo(x,
+                    //        typeof(ProjectionStreamEventHandler<,>).MakeGenericType(i.Type, x), i.Type))
+                    //    .ToArray();
+                    //var lastPosition = await stream.LastPosition();
+                    //await factory.SubscribeToStreams(lastPosition, streamSubscriptions);
 
                     
-                    var projectionSubscriptions = i.Events.Select(x => new SubscriptionInfo(x,
-                            typeof(ProjectionEventHandler<,>).MakeGenericType(i.Type, x), i.Type))
-                        .ToArray();
+                    //var projectionSubscriptions = i.Events.Select(x => new SubscriptionInfo(x,
+                    //        typeof(ProjectionEventHandler<,>).MakeGenericType(i.Type, x), i.Type))
+                    //    .ToArray();
                     
-                    await factory.SubscribeToStream(projectionStreamName, projectionSubscriptions);
+                    //await factory.SubscribeToStream(projectionStreamName, projectionSubscriptions);
 
                     //var coordinator = ActivatorUtilities.CreateInstance<StreamJoinCoordinator>(serviceProvider).WithName(i.Type.Name);
 
@@ -85,7 +93,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
                     //    .ToArray();
 
                     //await coordinator.SubscribeToStreams(subscriptions);
-                }
+                }}
         }
 
         public void Initialize(IEnumerable<IProjectionSchema> projections)

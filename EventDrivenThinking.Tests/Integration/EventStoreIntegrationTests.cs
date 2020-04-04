@@ -45,14 +45,27 @@ namespace EventDrivenThinking.Tests.Integration
         }
 
         [Fact]
+        public async Task TestConnect()
+        {
+            EventStoreFacade es = new EventStoreFacade("https://localhost:2113",
+                "tcp://localhost:1113", "admin", "changeit");
+
+
+            await foreach (var i in es.ReadAllAsync(Direction.Forwards, global::EventStore.Client.Position.Start, 100))
+            {
+
+            }
+        }
+
+        [Fact]
         public async Task CanConnect()
         {
-            Type t = typeof(ProtoBuf.BclHelpers);
-            ConnectionSettings settings = ConnectionSettings.Create().UseSslConnection(false)
+            ConnectionSettings settings = ConnectionSettings.Create()
+                .UseSslConnection(false)
                 //.UseDebugLogger()
                 .EnableVerboseLogging()
                 .KeepRetrying()
-                //.SetHeartbeatTimeout(TimeSpan.FromSeconds(30))
+                .SetHeartbeatTimeout(TimeSpan.FromSeconds(30))
                 .SetDefaultUserCredentials(new UserCredentials("admin","changeit"))
                 .Build();
             

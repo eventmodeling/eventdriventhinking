@@ -4,10 +4,11 @@ using EventDrivenThinking.EventInference.Schema;
 
 namespace EventDrivenThinking.EventInference.Subscriptions
 {
-    public interface ISubscriptionProvider<TOwnerInterface>
+    public interface ISubscriptionProvider<TOwnerInterface, TSchema>
+    where TSchema : ISchema
     {
-        bool CanMerge(ISubscriptionProvider<TOwnerInterface> other);
-        ISubscriptionProvider<TOwnerInterface> Merge(ISubscriptionProvider<TOwnerInterface> other);
-        Task Subscribe(ISchema schema, IEventHandlerFactory factory, object[] args = null);
+        bool CanMerge(ISubscriptionProvider<TOwnerInterface, TSchema> other);
+        ISubscriptionProvider<TOwnerInterface, TSchema> Merge(ISubscriptionProvider<TOwnerInterface, TSchema> other);
+        Task Subscribe(TSchema schema, IEventHandlerFactory factory, object[] args = null);
     }
 }
