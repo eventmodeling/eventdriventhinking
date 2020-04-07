@@ -24,7 +24,7 @@ namespace EventDrivenThinking.EventInference.EventStore
         private static readonly Serilog.ILogger Log = LoggerFactory.For<EventStoreFacade>();
         private readonly HttpEventStoreChannel _httpClient;
         private readonly TcpEventStoreChannel _tcpClient;
-        private readonly IEventStoreChannel _client;
+        private IEventStoreChannel _client;
         private IEventStoreConnection _tcp;
         public UserCredentials DefaultCredentials { get; private set; }
 
@@ -55,7 +55,16 @@ namespace EventDrivenThinking.EventInference.EventStore
 
             _client = _tcpClient;
         }
-        
+
+        public bool IsTcp
+        {
+            get { return _client == _tcpClient; }
+            set
+            {
+                if (value) _client = _tcpClient;
+                else _client = _httpClient;
+            }
+        }
 
         public Task<WriteResult> AppendToStreamAsync(string streamName, StreamRevision expectedRevision, IEnumerable<global::EventStore.Client.EventData> eventData,
             Action<EventStoreClientOperationOptions> configureOperationOptions = null, UserCredentials userCredentials = null,
@@ -117,21 +126,23 @@ namespace EventDrivenThinking.EventInference.EventStore
             return _client.ReadAllAsync(direction, position, maxCount, configureOperationOptions, resolveLinkTos, filterOptions, DefaultCredentials ?? userCredentials, cancellationToken);
         }
 
-        public async Task<Position> GetLastStreamPosition(string streamName)
+        public async Task<(Position, StreamRevision)> GetLastStreamPosition(string streamName)
         {
             try
             {
                 await foreach (var i in _httpClient.ReadStreamAsync(Direction.Backwards,
                         streamName,
-                        StreamRevision.End, 1, null, true))
+                        StreamRevision.End, 1, null, false, DefaultCredentials))
                 {
-                    return i.Event.Position;
+                    
+                    return (i.Event.Position, i.Event.EventNumber);
                 }
             }
+            
             catch (StreamNotFoundException ex)
             {
             }
-            return Position.Start;
+            return (Position.Start, StreamRevision.Start);
         }
 
         public IAsyncEnumerable<ResolvedEvent> ReadStreamAsync(Direction direction, string streamName, StreamRevision revision, ulong count,
@@ -165,7 +176,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken())
         {
-            Log.Debug("SubscribeToStreamAsync {streamName}", streamName);
+            Log.Debug("SubscribeToStreamAsync {streamName} starting from current time.", streamName);
 
             return _client.SubscribeToStreamAsync(streamName, eventAppeared, resolveLinkTos, subscriptionDropped, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);
         }
@@ -179,7 +190,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken())
         {
-            Log.Debug("SubscribeToStreamAsync {streamName}", streamName);
+            Log.Debug("SubscribeToStreamAsync {streamName} starting from revision.", streamName);
             if (onLiveProcessingStarted != null && _client == _tcpClient)
             {
                 return await _tcpClient.SubscribeToStreamAsync(streamName, start, eventAppeared, onLiveProcessingStarted, resolveLinkTos, subscriptionDropped, configureOperationOptions, DefaultCredentials ?? userCredentials, cancellationToken);

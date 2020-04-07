@@ -21,14 +21,17 @@ namespace EventDrivenThinking.Integrations.EventAggregator
         IEventSubscriptionProvider<IProjection, IProjectionSchema, TEvent>
         where TEvent : IEvent
     {
+        
         public override Type EventType => typeof(TEvent);
-        private Func<IProjectionSchema, IEventHandlerFactory, object[], Task> _invocation;
-        public override async Task Subscribe(IProjectionSchema schema, IEventHandlerFactory factory, object[] args = null)
+        private Func<IProjectionSchema, IEventHandlerFactory, object[], Task<ISubscription>> _invocation;
+        public override async Task<ISubscription> Subscribe( IEventHandlerFactory factory, object[] args = null)
         {
             if (_invocation == null)
             {
                 MethodInfo m = typeof(ProjectionEventSubscriptionProvider<TEvent>).GetMethod(nameof(Subscribe),
                     BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.NonPublic);
+
+                m = m.MakeGenericMethod(_schema.Type);
 
                 var schemaParam = Expression.Parameter(typeof(IProjectionSchema), "schema");
                 var factoryParam = Expression.Parameter(typeof(IEventHandlerFactory), "factory");
@@ -36,14 +39,15 @@ namespace EventDrivenThinking.Integrations.EventAggregator
 
                 var call = Expression.Call(Expression.Constant(this), m, schemaParam, factoryParam, argsParam);
                 _invocation = Expression
-                    .Lambda<Func<IProjectionSchema, IEventHandlerFactory, object[], Task>>(call, schemaParam, factoryParam, argsParam).Compile();
+                    .Lambda<Func<IProjectionSchema, IEventHandlerFactory, object[], Task<ISubscription>>>(call, schemaParam, factoryParam, argsParam).Compile();
             }
 
-            await _invocation(schema, factory, args);
+            return await _invocation(_schema, factory, args);
         }
 
-        private async Task Subscribe<TProjection>(IProjectionSchema schema, IEventHandlerFactory factory, object[] args)
+        private async Task<ISubscription> Subscribe<TProjection>(IProjectionSchema schema, IEventHandlerFactory factory, object[] args)
         {
+            Subscription s = new Subscription(true);
             if (!factory.SupportedEventTypes.Contains<TEvent>())
                 throw new InvalidOperationException($"Event Handler Factory seems not to support this Event. {typeof(TEvent).Name}");
 
@@ -52,11 +56,15 @@ namespace EventDrivenThinking.Integrations.EventAggregator
             {
                 if (e.Event.Event.GetType() == typeof(TEvent))
                 {
-                    var handler = factory.CreateHandler<TEvent>();
+                    using (var scope = factory.Scope())
+                    {
+                        var handler = scope.CreateHandler<TEvent>();
 
-                    handler.Execute(e.Event.Metadata, (TEvent)e.Event.Event).GetAwaiter().GetResult();
+                        handler.Execute(e.Event.Metadata, (TEvent) e.Event.Event).GetAwaiter().GetResult();
+                    }
                 }
             }, ThreadOption.UIThread);
+            return s;
         }
 
         public ProjectionEventSubscriptionProvider(IEventConverter eventConverter, IEventAggregator eventAggregator) : base(eventConverter, eventAggregator)
@@ -68,7 +76,12 @@ namespace EventDrivenThinking.Integrations.EventAggregator
     {
         protected readonly IEventAggregator _eventAggregator;
         protected readonly IEventConverter _eventConverter;
+        protected IProjectionSchema _schema;
 
+        public void Init(IProjectionSchema schema)
+        {
+            _schema = schema;
+        }
         protected SingleEventSubscriptionProvider( IEventConverter eventConverter, IEventAggregator eventAggregator)
         {
             _eventConverter = eventConverter;
@@ -87,10 +100,10 @@ namespace EventDrivenThinking.Integrations.EventAggregator
             {
                 return other.Merge(this);
             }
-            else return new MultiEventSubscriptionProvider(this, _eventConverter, _eventAggregator);
+            else return new MultiEventSubscriptionProvider(this, _eventConverter, _eventAggregator, _schema);
         }
 
-        public abstract Task Subscribe(IProjectionSchema schema, IEventHandlerFactory factory, object[] args = null);
+        public abstract Task<ISubscription> Subscribe(IEventHandlerFactory factory, object[] args = null);
 
     }
     public class MultiEventSubscriptionProvider : ISubscriptionProvider<IProjection, IProjectionSchema>
@@ -99,17 +112,24 @@ namespace EventDrivenThinking.Integrations.EventAggregator
         private IEventAggregator _eventAggregator;
         
         private readonly IEventConverter _eventConverter;
+        protected IProjectionSchema _schema;
 
-        public MultiEventSubscriptionProvider(SingleEventSubscriptionProvider singleEventSubscription, IEventConverter eventConverter, IEventAggregator eventAggregator)
+        public void Init(IProjectionSchema schema)
+        {
+            _schema = schema;
+        }
+        public MultiEventSubscriptionProvider(SingleEventSubscriptionProvider singleEventSubscription, IEventConverter eventConverter, IEventAggregator eventAggregator,
+            IProjectionSchema schema)
         {
             _eventConverter = eventConverter;
             _eventAggregator = eventAggregator;
             _providers = new List<SingleEventSubscriptionProvider>() { singleEventSubscription };
+            _schema = schema;
         }
 
         public virtual bool CanMerge(ISubscriptionProvider<IProjection, IProjectionSchema> other)
         {
-            return other is MultiEventSubscriptionProvider || other is SingleEventSubscriptionProvider;
+            return (other is MultiEventSubscriptionProvider || other is SingleEventSubscriptionProvider);
         }
 
         public virtual ISubscriptionProvider<IProjection, IProjectionSchema> Merge(ISubscriptionProvider<IProjection, IProjectionSchema> other)
@@ -124,14 +144,15 @@ namespace EventDrivenThinking.Integrations.EventAggregator
             }
             return this;
         }
-        private Func<IProjectionSchema, IEventHandlerFactory, object[], Task> _invocation;
-        public async Task Subscribe(IProjectionSchema schema, IEventHandlerFactory factory,
+        private Func<IProjectionSchema, IEventHandlerFactory, object[], Task<ISubscription>> _invocation;
+        public async Task<ISubscription> Subscribe( IEventHandlerFactory factory,
             object[] args = null)
         {
             if (_invocation == null)
             {
                 MethodInfo m = typeof(MultiEventSubscriptionProvider).GetMethod(nameof(Subscribe),
                     BindingFlags.Instance | BindingFlags.InvokeMethod | BindingFlags.NonPublic);
+                m = m.MakeGenericMethod(_schema.Type);
 
                 var schemaParam = Expression.Parameter(typeof(IProjectionSchema), "schema");
                 var factoryParam = Expression.Parameter(typeof(IEventHandlerFactory), "factory");
@@ -139,13 +160,13 @@ namespace EventDrivenThinking.Integrations.EventAggregator
 
                 var call = Expression.Call(Expression.Constant(this), m, schemaParam, factoryParam, argsParam);
                 _invocation = Expression
-                    .Lambda<Func<IProjectionSchema, IEventHandlerFactory, object[], Task>>(call, schemaParam,
+                    .Lambda<Func<IProjectionSchema, IEventHandlerFactory, object[], Task<ISubscription>>>(call, schemaParam,
                         factoryParam, argsParam).Compile();
             }
 
-            await _invocation(schema, factory, args);
+            return await _invocation(_schema, factory, args);
         }
-        private async Task Subscribe<TProjection>(IProjectionSchema schema, IEventHandlerFactory factory, object[] args = null)
+        private async Task<ISubscription> Subscribe<TProjection>(IProjectionSchema schema, IEventHandlerFactory factory, object[] args = null)
         {
             var supportedTypes = _providers.Select(x => x.EventType).ToHashSet();
             
@@ -154,11 +175,16 @@ namespace EventDrivenThinking.Integrations.EventAggregator
                 var eventType = e.Event.Event.GetType();
                 if (supportedTypes.Contains(eventType))
                 {
-                    var handler = factory.CreateHandler(eventType);
+                    using (var scope = factory.Scope())
+                    {
+                        var handler = scope.CreateHandler(eventType);
 
-                    handler.Execute(e.Event.Metadata, e.Event.Event).GetAwaiter().GetResult();
+                        handler.Execute(e.Event.Metadata, e.Event.Event).GetAwaiter().GetResult();
+                    }
                 }
             }, ThreadOption.UIThread);
+
+            return new Subscription(true);
         }
     }
 }

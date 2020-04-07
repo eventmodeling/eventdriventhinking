@@ -31,10 +31,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
             foreach (var i in _projections)
             {
                 Log.Debug("Projection {projectionName} in {category} is using EventStore subscriptions.",  i.Type.Name, i.Category);
-                // Maybe IModelProjection Should be rather from TProjection not TModel?
-                serviceCollection.TryAddSingleton(typeof(IModelProjectionSubscriber<>).MakeGenericType(i.ModelType),
-                    typeof(EventStoreModelProjectionSubscriber<>).MakeGenericType(i.ModelType));
-
+                
                 foreach(var v in i.Events)
                 {
                     Type[] args = new Type[]{i.Type, v};
@@ -61,38 +58,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
                 {
                     await controller.SubscribeHandlers(i, new ProjectionEventHandlerFactory(serviceProvider, i));
                     await streamController.SubscribeHandlers(i, new ProjectionStreamEventHandlerFactory(serviceProvider,i)); // this will load checkpoints.
-                    // When subscribing a projection
-                    // We need to know how to do it. (1)
-                    // At the end projection need to also know
-                    // where to store it's events (2)
-
-                    // Client & Server subscribe to the stream?
-                    //string projectionStreamName = $"{ServiceConventions.GetCategoryFromNamespace(i.Type.Namespace)}Projection-{i.ProjectionHash}";
-
-                    //var stream = (IProjectionEventStream)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider,
-                    //    typeof(IProjectionEventStream<>).MakeGenericType(i.Type));
-
-                    //var factory = ActivatorUtilities.CreateInstance<SubscriptionFactory>(serviceProvider);
-                    //var streamSubscriptions = i.Events.Select(x => new SubscriptionInfo(x,
-                    //        typeof(ProjectionStreamEventHandler<,>).MakeGenericType(i.Type, x), i.Type))
-                    //    .ToArray();
-                    //var lastPosition = await stream.LastPosition();
-                    //await factory.SubscribeToStreams(lastPosition, streamSubscriptions);
-
                     
-                    //var projectionSubscriptions = i.Events.Select(x => new SubscriptionInfo(x,
-                    //        typeof(ProjectionEventHandler<,>).MakeGenericType(i.Type, x), i.Type))
-                    //    .ToArray();
-                    
-                    //await factory.SubscribeToStream(projectionStreamName, projectionSubscriptions);
-
-                    //var coordinator = ActivatorUtilities.CreateInstance<StreamJoinCoordinator>(serviceProvider).WithName(i.Type.Name);
-
-                    //var subscriptions = i.Events.Select(x=> new SubscriptionInfo(x, 
-                    //        typeof(ProjectionEventHandler<,>).MakeGenericType(i.Type, x),i.Type))
-                    //    .ToArray();
-
-                    //await coordinator.SubscribeToStreams(subscriptions);
                 }}
         }
 

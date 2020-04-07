@@ -25,7 +25,16 @@ namespace EventDrivenThinking.EventInference.EventStore
     }
     struct StreamPosition : IStreamPosition
     {
-        public Position EventStorePosition;
+        public Position GlobalPosition;
+        public StreamRevision StreamRevision;
+
+        public bool IsStart
+        {
+            get
+            {
+                return GlobalPosition.PreparePosition == 0 && GlobalPosition.CommitPosition == 0UL;
+            }
+        }
     }
     public interface IStreamPosition { }
     public interface IProjectionEventStream
@@ -101,10 +110,25 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         public async Task<IStreamPosition> LastPosition()
         {
-            var streamName = GetStreamName(_projectionSchema.ProjectionHash);
-            var esPosition = await _connection.GetLastStreamPosition(streamName);
-            return new StreamPosition() {EventStorePosition = esPosition};
-           
+            try
+            {
+                var streamName = GetStreamName(_projectionSchema.ProjectionHash);
+                var esPosition = await _connection.GetLastStreamPosition(streamName);
+                
+                return new StreamPosition()
+                {
+                    GlobalPosition = esPosition.Item1,
+                    StreamRevision = esPosition.Item2
+                };
+            }
+            catch (StreamNotFoundException ex)
+            {
+                return new StreamPosition()
+                {
+                    GlobalPosition = Position.Start,
+                    StreamRevision = StreamRevision.Start
+                };
+            }
         }
 
         public async Task Append(EventMetadata m, IEvent e)

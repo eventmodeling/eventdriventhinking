@@ -27,29 +27,41 @@ namespace EventDrivenThinking.Integrations.EventStore
 
         public override Type EventType => typeof(TEvent);
 
-        public override async Task Subscribe(IProjectionSchema schema, IEventHandlerFactory factory, object[] args = null)
+       
+        public override async Task<ISubscription> Subscribe(IEventHandlerFactory factory, object[] args = null)
         {
-            if(!factory.SupportedEventTypes.Contains<TEvent>())
+            // REMEMBER TO CHANGE MultiEventSubscritpionProvider
+
+            Subscription s = new Subscription();
+
+            if (!factory.SupportedEventTypes.Contains<TEvent>())
                 throw new InvalidOperationException($"Event Handler Factory seems not to support this Event. {typeof(TEvent).Name}");
 
             string projectionStreamName = null;
             if (args == null || args.Length == 0)
-                projectionStreamName = $"{schema.Category}Projection-{schema.ProjectionHash}";
+                projectionStreamName = $"{_schema.Category}Projection-{_schema.ProjectionHash}";
             else
-                projectionStreamName = $"{schema.Category}Projection-{args[0]}";
+                projectionStreamName = $"{_schema.Category}Projection-{args[0]}";
 
-            await _eventStore.SubscribeToStreamAsync(projectionStreamName, async (s, r, c) =>
+            await _eventStore.SubscribeToStreamAsync(projectionStreamName, 
+                StreamRevision.Start,
+                async (s, r, c) =>
             {
-                var type = schema.EventByName(r.Event.EventType);
+                var type = _schema.EventByName(r.Event.EventType);
                 if (type == typeof(TEvent))
                 {
-                    var handler = factory.CreateHandler<TEvent>();
+                    using (var scope = factory.Scope())
+                    {
+                        var handler = scope.CreateHandler<TEvent>();
 
-                    var (m, e) = _eventConverter.Convert<TEvent>(r);
+                        var (m, e) = _eventConverter.Convert<TEvent>(r);
 
-                    await handler.Execute(m, e);
+                        await handler.Execute(m, e);
+                    }
                 }
-            });
+            }, ss => s.MakeLive(), true);
+
+            return s;
         }
     }
 }

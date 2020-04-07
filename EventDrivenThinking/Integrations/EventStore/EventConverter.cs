@@ -18,6 +18,7 @@ namespace EventDrivenThinking.Integrations.EventStore
         {
             var eventString = Encoding.UTF8.GetString(e.Event.Data);
             var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
+            em.Version = e.Event.EventNumber.ToUInt64();
             var eventInstance = (IEvent)JsonConvert.DeserializeObject(eventString, eventType);
             return (em, eventInstance);
         }
@@ -26,6 +27,7 @@ namespace EventDrivenThinking.Integrations.EventStore
         {
             var eventString = Encoding.UTF8.GetString(e.Event.Data);
             var em = JsonConvert.DeserializeObject<EventMetadata>(Encoding.UTF8.GetString(e.Event.Metadata));
+            em.Version = e.Event.EventNumber.ToUInt64();
             var eventInstance = JsonConvert.DeserializeObject<TEvent>(eventString);
             return (em, eventInstance);
         }

@@ -21,7 +21,6 @@ using EventStore.ClientAPI.SystemData;
 using EventStore.Common.Utils;
 using FluentAssertions;
 using Io.Cucumber.Messages;
-using Newtonsoft.Json;
 using Polly;
 using Serilog.Core;
 using Unity;
@@ -34,7 +33,6 @@ using UserCredentials = EventStore.ClientAPI.SystemData.UserCredentials;
 
 namespace EventDrivenThinking.Tests.Integration
 {
-    
     public class EventStoreIntegrationTests
     {
         private readonly ITestOutputHelper _testOutputHelper;
@@ -44,19 +42,8 @@ namespace EventDrivenThinking.Tests.Integration
             _testOutputHelper = testOutputHelper;
         }
 
-        [Fact]
-        public async Task TestConnect()
-        {
-            EventStoreFacade es = new EventStoreFacade("https://localhost:2113",
-                "tcp://localhost:1113", "admin", "changeit");
-
-
-            await foreach (var i in es.ReadAllAsync(Direction.Forwards, global::EventStore.Client.Position.Start, 100))
-            {
-
-            }
-        }
-
+        
+      
         [Fact]
         public async Task CanConnect()
         {

@@ -42,7 +42,7 @@ namespace EventDrivenThinking.EventStoreCli
                     if (comments != string.Empty)
                         Console.ForegroundColor = ConsoleColor.Red;
                     
-                    Console.WriteLine($"{i.OriginalEventNumber}\t{i.Event.EventNumber}\t{i.Event.Created}\t{catalog}\t{id}\t{i.Event.EventType} {comments}");
+                    Console.WriteLine($"{i.OriginalEventNumber}\t{i.Event.EventNumber}\t{i.OriginalEvent.Created}\t{i.Event.Created}\t{catalog}\t{id}\t{i.Event.EventType} {comments}");
                     Console.ForegroundColor = ConsoleColor.White;
                 }
             }

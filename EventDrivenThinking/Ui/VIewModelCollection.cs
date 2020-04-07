@@ -126,7 +126,7 @@ namespace EventDrivenThinking.Ui
         public IEnumerator<TViewModel> GetEnumerator()
         {
             foreach (var i in _source)
-                yield return _map[i];
+                yield return this[i];
         }
 
         IEnumerator IEnumerable.GetEnumerator()

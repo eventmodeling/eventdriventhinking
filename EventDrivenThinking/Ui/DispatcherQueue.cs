@@ -22,8 +22,10 @@ namespace EventDrivenThinking.Ui
         {
             task.ContinueWith(x =>
             {
-                x.Result.ResultUpdated += (s, a) => { onUpdate(((ILiveResult<T>) s).Result); };
-                DispatcherQueue.Instance.Enqueue(() => onUpdate(x.Result.Result));
+                x.Result.ResultUpdated += (s, a) =>
+                {
+                    DispatcherQueue.Instance.Enqueue(() => onUpdate(x.Result.Result));
+                };
             });
         }
         public static Task CompleteOnUi<T>(this Task<T> task, Action<T> onComplete)

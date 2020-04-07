@@ -60,7 +60,7 @@ namespace EventDrivenThinking.App.Configuration
             _collection.TryAddSingleton<IProjectionEventStreamRepository, ProjectionEventStreamRepository>();
             _collection.TryAddSingleton<IProjectionSubscriptionController, ProjectionSubscriptionController>();
             _collection.TryAddSingleton<IProjectionStreamSubscriptionController, ProjectionStreamSubscriptionController>();
-
+            _collection.TryAddSingleton<IProcessorSubscriptionController, ProcessorSubscriptionController>();
 
             _collection.TryAddSingleton<ICommandDispatcher, CommandDispatcher>();
             _collection.TryAddSingleton<IEventHandlerDispatcher, EventHandlerDispatcher>();

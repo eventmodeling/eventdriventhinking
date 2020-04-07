@@ -80,7 +80,7 @@ namespace EventDrivenThinking.Ui
             _sources.Add(item);
             if (_isOrdered)
             {
-               
+                InternalAddSortedRange(item);
             }
             else
                 _items.AddRange(item);

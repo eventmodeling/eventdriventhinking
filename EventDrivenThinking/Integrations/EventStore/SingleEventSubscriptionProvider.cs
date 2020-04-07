@@ -13,6 +13,7 @@ namespace EventDrivenThinking.Integrations.EventStore
     {
         protected readonly IEventStoreFacade _eventStore;
         protected readonly IEventConverter _eventConverter;
+        protected IProjectionSchema _schema;
 
         protected SingleEventSubscriptionProvider(IEventStoreFacade eventStore, IEventConverter eventConverter)
         {
@@ -21,6 +22,11 @@ namespace EventDrivenThinking.Integrations.EventStore
         }
 
         public abstract Type EventType { get; }
+        public void Init(IProjectionSchema schema)
+        {
+            _schema = schema;
+        }
+
         public virtual bool CanMerge(ISubscriptionProvider<IProjection, IProjectionSchema> other)
         {
             return other is SingleEventSubscriptionProvider || other is MultiEventSubscriptionProvider;
@@ -32,10 +38,10 @@ namespace EventDrivenThinking.Integrations.EventStore
             {
                 return other.Merge(this);
             }
-            else return new MultiEventSubscriptionProvider(this, _eventStore,_eventConverter).Merge(other);
+            else return new MultiEventSubscriptionProvider(this, _eventStore,_eventConverter, _schema).Merge(other);
         }
 
-        public abstract Task Subscribe(IProjectionSchema schema, IEventHandlerFactory factory, object[] args = null);
+        public abstract Task<ISubscription> Subscribe(IEventHandlerFactory factory, object[] args = null);
 
     }
 }

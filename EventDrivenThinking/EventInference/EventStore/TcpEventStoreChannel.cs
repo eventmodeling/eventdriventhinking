@@ -80,10 +80,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             return new EventData2(d.EventId.ToGuid(), d.Type, d.ContentType == "application/json", d.Data, d.Metadata);
         }
 
-        public static long Convert(this StreamRevision s)
-        {
-            return (long)s.ToUInt64();
-        }
+        
         public static EventRecord Convert(this RecordedEvent e, Position2? position)
         {
             if (e == null)
@@ -268,7 +265,7 @@ namespace EventDrivenThinking.EventInference.EventStore
             UserCredentials userCredentials = null,
             CancellationToken cancellationToken = new CancellationToken())
         {
-            var start = revision.Convert();
+            var start = (long)revision.ToUInt64();
             if (direction == Direction.Forwards)
             {
                 var items = await _client.ReadStreamEventsForwardAsync(streamName, start, (int) count, resolveLinkTos);
@@ -424,7 +421,8 @@ namespace EventDrivenThinking.EventInference.EventStore
             CancellationToken cancellationToken = new CancellationToken())
         {
             TcpSubscription subscription = null;
-            long? lastCheckpoint = start.ToUInt64() == 0 ? null : (long?)(start.ToUInt64() == UInt64.MaxValue ? long.MaxValue : start.ToUInt64());
+            var streamRevision = start.ToUInt64();
+            long? lastCheckpoint = streamRevision == 0UL ? null : (long?)(streamRevision - 1);
             var result = _client.SubscribeToStreamFrom(streamName, lastCheckpoint,
                 CatchUpSubscriptionSettings.Default,
                 async (s, r) =>

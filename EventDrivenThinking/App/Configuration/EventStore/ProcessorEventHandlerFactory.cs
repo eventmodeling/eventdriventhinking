@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Runtime.InteropServices;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.Schema;
@@ -8,14 +7,13 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace EventDrivenThinking.App.Configuration.EventStore
 {
-    public class ProjectionStreamEventHandlerFactory : EventHandlerFactoryBase
+    public class ProcessorEventHandlerFactory : EventHandlerFactoryBase
     {
-        
-        private readonly IProjectionSchema _schema;
+        private readonly IProcessorSchema _schema;
 
-        public ProjectionStreamEventHandlerFactory(IServiceProvider serviceProvider, IProjectionSchema schema)
-        :base(serviceProvider)
+        public ProcessorEventHandlerFactory(IServiceProvider serviceProvider, IProcessorSchema schema) : base(serviceProvider)
         {
+
             _schema = schema;
             SupportedEventTypes = new TypeCollection(_schema.Events);
         }
@@ -23,7 +21,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         public override TypeCollection SupportedEventTypes { get; }
         protected override IEventHandler<TEvent> CreateHandler<TEvent>(IServiceScope scope)
         {
-            var type = typeof(ProjectionStreamEventHandler<,>).MakeGenericType(_schema.Type, typeof(TEvent));
+            var type = typeof(ProcessorEventHandler<,>).MakeGenericType(_schema.Type, typeof(TEvent));
             return (IEventHandler<TEvent>)ActivatorUtilities.CreateInstance(scope.ServiceProvider, type);
         }
     }

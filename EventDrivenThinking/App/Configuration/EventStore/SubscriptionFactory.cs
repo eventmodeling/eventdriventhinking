@@ -53,7 +53,7 @@ namespace EventDrivenThinking.App.Configuration.EventStore
             var filter = EventTypeFilter.Prefix(prefixes);
             FilterOptions filterOptions = new FilterOptions(filter);
 
-            var esStreamPosition = ((StreamPosition) (streamPosition)).EventStorePosition;
+            var esStreamPosition = ((StreamPosition) (streamPosition)).GlobalPosition;
 
             var handlers = eventTypes.ToDictionary(x => x.EventType.Name, x => x.HandlerType);
             var dict = eventTypes.Select(x => x.EventType).ToDictionary(x => x.Name);

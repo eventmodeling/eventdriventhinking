@@ -150,7 +150,7 @@ namespace EventDrivenThinking.Tests.Common
             var queryHandler = (IQueryHandler<TQuery, TModel, TResult>)Activator.CreateInstance(querySchema.QueryHandlerType);
             var qr = queryHandler.Execute((TModel)query.Projection.Model, (TQuery)query.Query);
 
-            QueryEngine<TModel>.LiveQuery<TQuery, TResult> l = (QueryEngine<TModel>.LiveQuery<TQuery, TResult>) query.Result;
+            LiveQuery<TQuery,TModel, TResult> l = (LiveQuery<TQuery, TModel, TResult>) query.Result;
             l.OnUpdate(qr);
             
             return query.Result;
@@ -215,8 +215,9 @@ namespace EventDrivenThinking.Tests.Common
             var queryHandler = (IQueryHandler<TQuery, TModel, TResult>) Activator.CreateInstance(querySchema.QueryHandlerType);
             var qr = queryHandler.Execute(projection.Model, query);
 
+
             var result =
-                new QueryEngine<TModel>.LiveQuery<TQuery, TResult>(query, null, querySchema, OnDispose,
+                new LiveQuery<TQuery,TModel, TResult>(query, null, queryHandler, querySchema, OnDispose,
                     new QueryOptions());
 
             result.OnResult(qr);

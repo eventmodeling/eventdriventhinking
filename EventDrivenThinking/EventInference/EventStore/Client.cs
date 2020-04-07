@@ -25,7 +25,7 @@ namespace EventDrivenThinking.EventInference.EventStore
         EventStoreUserManagerClient UsersManager { get; }
 
 
-        Task<Position> GetLastStreamPosition(string streamName);
+        Task<(Position, StreamRevision)> GetLastStreamPosition(string streamName);
 
         Task<WriteResult> AppendToStreamAsync(string streamName, StreamRevision expectedRevision, IEnumerable<global::EventStore.Client.EventData> eventData,
             Action<EventStoreClientOperationOptions> configureOperationOptions = null, UserCredentials userCredentials = null,

@@ -9,21 +9,21 @@ namespace EventDrivenThinking.App.Configuration.EventStore
 {
     public class ProjectionEventHandlerFactory : EventHandlerFactoryBase
     {
-        private readonly IServiceProvider _serviceProvider;
+        
         private readonly IProjectionSchema _schema;
 
-        public ProjectionEventHandlerFactory(IServiceProvider serviceProvider, IProjectionSchema schema)
+        public ProjectionEventHandlerFactory(IServiceProvider serviceProvider, IProjectionSchema schema) : base(serviceProvider)
         {
-            _serviceProvider = serviceProvider;
+            
             _schema = schema;
             SupportedEventTypes = new TypeCollection(_schema.Events);
         }
 
         public override TypeCollection SupportedEventTypes { get; }
-        public override IEventHandler<TEvent> CreateHandler<TEvent>()
+        protected override IEventHandler<TEvent> CreateHandler<TEvent>(IServiceScope scope)
         {
             var type = typeof(ProjectionEventHandler<,>).MakeGenericType(_schema.Type, typeof(TEvent));
-            return (IEventHandler<TEvent>)ActivatorUtilities.CreateInstance(_serviceProvider,type);
+            return (IEventHandler<TEvent>)ActivatorUtilities.CreateInstance(scope.ServiceProvider, type);
         }
     }
 }
