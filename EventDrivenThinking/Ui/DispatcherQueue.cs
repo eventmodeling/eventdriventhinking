@@ -22,10 +22,13 @@ namespace EventDrivenThinking.Ui
         {
             task.ContinueWith(x =>
             {
-                x.Result.ResultUpdated += (s, a) =>
+                void OnUpdateUi(object s, EventArgs a)
                 {
                     DispatcherQueue.Instance.Enqueue(() => onUpdate(x.Result.Result));
-                };
+                        x.Result.ResultUpdated -= OnUpdateUi;
+                }
+
+                x.Result.ResultUpdated += OnUpdateUi;
             });
         }
         public static Task CompleteOnUi<T>(this Task<T> task, Action<T> onComplete)

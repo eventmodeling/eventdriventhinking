@@ -47,18 +47,21 @@ namespace EventDrivenThinking.Integrations.EventStore
                 StreamRevision.Start,
                 async (s, r, c) =>
             {
-                var type = _schema.EventByName(r.Event.EventType);
-                if (type == typeof(TEvent))
+                if (r.IsResolved)
                 {
-                    using (var scope = factory.Scope())
+                    var type = _schema.EventByName(r.Event.EventType);
+                    if (type == typeof(TEvent))
                     {
-                        var handler = scope.CreateHandler<TEvent>();
+                        using (var scope = factory.Scope())
+                        {
+                            var handler = scope.CreateHandler<TEvent>();
 
-                        var (m, e) = _eventConverter.Convert<TEvent>(r);
+                            var (m, e) = _eventConverter.Convert<TEvent>(r);
 
-                        await handler.Execute(m, e);
+                            await handler.Execute(m, e);
+                        }
                     }
-                }
+                } 
             }, ss => s.MakeLive(), true);
 
             return s;

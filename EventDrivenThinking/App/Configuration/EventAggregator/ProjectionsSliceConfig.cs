@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.InMemory;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.EventInference.Subscriptions;
 using EventDrivenThinking.Integrations.EventAggregator;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -28,19 +30,27 @@ namespace EventDrivenThinking.App.Configuration.EventAggregator
                     typeof(EventAggregatorModelProjectionSubscriber<,>).MakeGenericType(i.ModelType, i.Type));
 
 
-                serviceCollection.TryAddSingleton(typeof(IProjectionEventStream<>).MakeGenericType(i.Type)
-                , typeof(InMemoryProjectionEventStream<>).MakeGenericType(i.Type));
+                var streamInterface = typeof(IProjectionEventStream<>).MakeGenericType(i.Type);
+                serviceCollection.TryAddSingleton(streamInterface, sp => sp.GetRequiredService<IInMemoryProjectionStreamRegister>().CreateOrGet(i.Type));
             }
         }
 
         public async Task ConfigureServices(IServiceProvider serviceProvider)
         {
-            
+            IProjectionSubscriptionController controller =
+                serviceProvider.GetRequiredService<IProjectionSubscriptionController>();
 
-            await ActivatorUtilities.CreateInstance<EventAggregatorSubscriber>(serviceProvider)
-                .Subscribe(_projections.SelectMany(x=>x.Events));
+            //IProjectionStreamSubscriptionController streamController =
+            //    serviceProvider.GetRequiredService<IProjectionStreamSubscriptionController>();
+
+            foreach (var i in _projections)
+            {
+                await controller.SubscribeHandlers(i, new ProjectionEventHandlerFactory(serviceProvider, i));
+                //await streamController.SubscribeHandlers(i, new ProjectionStreamEventHandlerFactory(serviceProvider, i)); // this will load checkpoints.
+            }
         }
 
+        
         public void Initialize(IEnumerable<IProjectionSchema> projections)
         {
             this._projections = projections.ToArray();

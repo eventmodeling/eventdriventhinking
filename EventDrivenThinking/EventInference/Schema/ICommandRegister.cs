@@ -24,10 +24,17 @@ namespace EventDrivenThinking.EventInference.Schema
         bool IsCustomCommandHandler { get;  }
         Type CommandHandlerType { get; }
     }
-
+    
+    /// <summary>
+    /// This schema is used for creating projection streams
+    /// Maybe we should change it.
+    /// It seems as we just need to configure projections differently?
+    /// </summary>
     public interface IEventSchema : ISchema
     {
-        //Type EventSubscriberType { get; }
+        // a very bold move to include projection schema. 
+        // since it increases coupling :-(
+        IEnumerable<IProjectionSchema> Projections { get; }
     }
 
     

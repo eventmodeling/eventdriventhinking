@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
+using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Models;
 using Prism.Events;
@@ -21,19 +22,38 @@ namespace EventDrivenThinking.EventInference.InMemory
             PartitionId = partitionId;
         }
     }
+
+    public class InMemoryProjectionStreamPublisher<TProjection>
+    {
+        private readonly PubSubEvent<ProjectionEvent<TProjection>> _pubSubEvent;
+
+        public InMemoryProjectionStreamPublisher(IEventAggregator eventAggregator)
+        {
+            _pubSubEvent = eventAggregator.GetEvent<PubSubEvent<ProjectionEvent<TProjection>>>();
+        }
+
+        public void Publish(EventEnvelope eventEnvelope, Guid? paritionId = null)
+        {
+            _pubSubEvent.Publish(new ProjectionEvent<TProjection>(eventEnvelope, paritionId));
+        }
+    }
+
     public class InMemoryProjectionEventStream<TProjection> : IProjectionEventStream<TProjection> where TProjection : IProjection
     {
+        private readonly InMemoryProjectionStreamPublisher<TProjection> _publisher;
+
         class InMemoryPosition : IStreamPosition
         {
             public long Position;
         }
         private readonly ConcurrentQueue<EventEnvelope> _rootStream;
         private readonly ConcurrentDictionary<Guid,ConcurrentQueue<EventEnvelope>> _partitionStreams;
-        private readonly PubSubEvent<ProjectionEvent<TProjection>> _pubSubEvent;
+        
 
-        public InMemoryProjectionEventStream(IEventAggregator eventAggregator)
+        public InMemoryProjectionEventStream(InMemoryProjectionStreamPublisher<TProjection> publisher)
         {
-            _pubSubEvent = eventAggregator.GetEvent<PubSubEvent<ProjectionEvent<TProjection>>>();
+            _publisher = publisher;
+
             _rootStream = new ConcurrentQueue<EventEnvelope>();
             _partitionStreams = new ConcurrentDictionary<Guid, ConcurrentQueue<EventEnvelope>>();
         }
@@ -66,8 +86,7 @@ namespace EventDrivenThinking.EventInference.InMemory
         {
             var eventEnvelope = new EventEnvelope(e,m);
             _rootStream.Enqueue(eventEnvelope);
-
-            _pubSubEvent.Publish(new ProjectionEvent<TProjection>(eventEnvelope,null));
+            _publisher.Publish(eventEnvelope);
 
             return Task.CompletedTask;
         }
@@ -78,7 +97,7 @@ namespace EventDrivenThinking.EventInference.InMemory
             var eventEnvelope = new EventEnvelope(e,m);
             queue.Enqueue(eventEnvelope);
 
-            _pubSubEvent.Publish(new ProjectionEvent<TProjection>(eventEnvelope, key));
+            _publisher.Publish(eventEnvelope, key);
 
             return Task.CompletedTask;
         }

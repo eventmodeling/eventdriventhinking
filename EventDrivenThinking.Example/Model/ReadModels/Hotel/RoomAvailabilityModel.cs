@@ -34,7 +34,7 @@ namespace EventDrivenThinking.Example.Model.ReadModels.Hotel
 
     public class RoomAvailabilityStreamPartitioner : IProjectionStreamPartitioner<RoomAvailabilityProjection>
     {
-        public Guid[] CalculatePartitions(IModel model, EventMetadata m, IEvent ev)
+        public Guid[] CalculatePartitions(EventMetadata m, IEvent ev)
         {
             List<Guid> partitions = new List<Guid>(1);
             switch (ev)
@@ -63,7 +63,7 @@ namespace EventDrivenThinking.Example.Model.ReadModels.Hotel
 
     public class GetAvailabilityForRoomQueryPartitioner : IQueryPartitioner<GetAvailabilityForRoomQuery>
     {
-        public Guid CalculatePartition(IModel model, GetAvailabilityForRoomQuery query)
+        public Guid CalculatePartition( GetAvailabilityForRoomQuery query)
         {
             string partition = query.Floor.ToString();
             return partition.ToGuid();

@@ -8,6 +8,7 @@ namespace EventDrivenThinking.EventInference.Subscriptions
     public interface ISubscriptionProvider<TOwnerInterface, TSchema>
     where TSchema : ISchema
     {
+        string Type { get; }
         void Init(TSchema schema);
         bool CanMerge(ISubscriptionProvider<TOwnerInterface, TSchema> other);
         ISubscriptionProvider<TOwnerInterface, TSchema> Merge(ISubscriptionProvider<TOwnerInterface, TSchema> other);

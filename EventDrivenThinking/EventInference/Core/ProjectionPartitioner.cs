@@ -16,23 +16,20 @@ namespace EventDrivenThinking.EventInference.Core
     public abstract class ProjectionStreamPartitioner<TProjection> : IProjectionStreamPartitioner<TProjection>
         where TProjection : IProjection
     {
-        private readonly ConcurrentDictionary<Type, Func<IModel, EventMetadata, IEvent, Guid[]>> _methods =
-            new ConcurrentDictionary<Type, Func<IModel, EventMetadata, IEvent, Guid[]>>();
+        private readonly ConcurrentDictionary<Type, Func<EventMetadata, IEvent, Guid[]>> _methods =
+            new ConcurrentDictionary<Type, Func< EventMetadata, IEvent, Guid[]>>();
 
-        public Guid[] CalculatePartitions(IModel model, EventMetadata m, IEvent ev)
+        public Guid[] CalculatePartitions(EventMetadata m, IEvent ev)
         {
-            var f = _methods.GetOrAdd(ev.GetType(), x => OnBuildCalculateMethod(x, model.GetType()));
-            return f?.Invoke(model, m, ev) ?? Array.Empty<Guid>();
+            var f = _methods.GetOrAdd(ev.GetType(), x => OnBuildCalculateMethod(x));
+            return f?.Invoke( m, ev) ?? Array.Empty<Guid>();
         }
 
-        protected IRegistrationSyntax<TModel> FromModel<TModel>()
-        {
-            return new RegistrationSyntax<TModel>(this);
-        }
+      
 
-        private Func<IModel, EventMetadata, IEvent, Guid[]> OnBuildCalculateMethod(Type eventType, Type modelType)
+        private Func< EventMetadata, IEvent, Guid[]> OnBuildCalculateMethod(Type eventType)
         {
-            Type[] args = {modelType, typeof(EventMetadata), eventType};
+            Type[] args = {typeof(EventMetadata), eventType};
 
             // Should go though inheritance hierarchy starting from eventType.
             var method = GetType().GetMethod("CalculatePartition",
@@ -50,25 +47,25 @@ namespace EventDrivenThinking.EventInference.Core
             if (method.DeclaringType == typeof(ProjectionStreamPartitioner<TProjection>))
                 return null;
 
-            var modelParam = Expression.Parameter(typeof(IModel), "model");
+            //var modelParam = Expression.Parameter(typeof(IModel), "model");
             var eventParam = Expression.Parameter(typeof(IEvent), "event");
             var eventMetaParam = Expression.Parameter(typeof(EventMetadata), "metadata");
 
-            var callExpression = Expression.Call(method, Expression.Convert(modelParam, modelType), eventMetaParam,
+            //var callExpression = Expression.Call(method, Expression.Convert(modelParam, modelType), eventMetaParam,
+            var callExpression = Expression.Call(method,  eventMetaParam,
                 Expression.Convert(eventParam, eventType));
 
             if (method.ReturnType == typeof(Guid))
             {
                 var arrayExpression = Expression.NewArrayInit(typeof(Guid), callExpression);
-                var lambda = Expression.Lambda<Func<IModel, EventMetadata, IEvent, Guid[]>>(arrayExpression, modelParam,
-                    eventMetaParam, eventParam);
+                var lambda = Expression.Lambda<Func< EventMetadata, IEvent, Guid[]>>(arrayExpression, eventMetaParam, eventParam);
                 return lambda.Compile();
             }
 
             if (method.ReturnType == typeof(Guid[]))
             {
                 var lambda =
-                    Expression.Lambda<Func<IModel, EventMetadata, IEvent, Guid[]>>(callExpression, modelParam,
+                    Expression.Lambda<Func<EventMetadata, IEvent, Guid[]>>(callExpression,
                         eventMetaParam, eventParam);
                 return lambda.Compile();
             }
@@ -78,8 +75,8 @@ namespace EventDrivenThinking.EventInference.Core
 
         public interface IRegistrationSyntax<out TModel>
         {
-            IRegistrationSyntax<TModel> WithEvent<TEvent>(Func<TModel, EventMetadata, TEvent, Guid> mth);
-            IRegistrationSyntax<TModel> WithEvent<TEvent>(Func<TModel, EventMetadata, TEvent, Guid[]> mth);
+            IRegistrationSyntax<TModel> WithEvent<TEvent>(Func< EventMetadata, TEvent, Guid> mth);
+            IRegistrationSyntax<TModel> WithEvent<TEvent>(Func< EventMetadata, TEvent, Guid[]> mth);
         }
 
         private class RegistrationSyntax<TModel> : IRegistrationSyntax<TModel>
@@ -91,17 +88,17 @@ namespace EventDrivenThinking.EventInference.Core
                 _parent = parent;
             }
 
-            public IRegistrationSyntax<TModel> WithEvent<TEvent>(Func<TModel, EventMetadata, TEvent, Guid[]> mth)
+            public IRegistrationSyntax<TModel> WithEvent<TEvent>(Func< EventMetadata, TEvent, Guid[]> mth)
             {
                 _parent._methods.TryAdd(typeof(TEvent),
-                    (model, metadata, ev) => mth((TModel) model, metadata, (TEvent) ev));
+                    ( metadata, ev) => mth(metadata, (TEvent) ev));
                 return this;
             }
 
-            public IRegistrationSyntax<TModel> WithEvent<TEvent>(Func<TModel, EventMetadata, TEvent, Guid> mth)
+            public IRegistrationSyntax<TModel> WithEvent<TEvent>(Func< EventMetadata, TEvent, Guid> mth)
             {
                 _parent._methods.TryAdd(typeof(TEvent),
-                    (model, metadata, ev) => new Guid[1] {mth((TModel) model, metadata, (TEvent) ev)});
+                    ( metadata, ev) => new Guid[1] {mth(metadata, (TEvent) ev)});
                 return this;
             }
         }

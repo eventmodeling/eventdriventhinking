@@ -32,36 +32,61 @@ namespace EventDrivenThinking.EventInference.Schema
     public class ProjectionSchemaRegister : IProjectionSchemaRegister
     {
         [DebuggerDisplay("Type: {Type.Name} Category: {Category}")]
-        class ProjectionSchema : IProjectionSchema
+        class ProjectionSchema : IProjectionSchema, IEquatable<ProjectionSchema>
         {
             public Type Type { get; private set; }
             public Type ModelType { get; set; }
             public string Category { get; private set; }
-            private readonly List<Type> _events;
             public Guid ProjectionHash { get; }
+            public TypeCollection Events { get; }
+            public TypeCollection Partitioners { get; }
 
-            public IEnumerable<Type> Events
+            public bool Equals(ProjectionSchema other)
             {
-                get => _events.AsReadOnly();
+                if (ReferenceEquals(null, other)) return false;
+                if (ReferenceEquals(this, other)) return true;
+                return Equals(Type, other.Type);
             }
-            public void AddEventType(Type eventType) { _events.Add(eventType);}
+
+            public override bool Equals(object obj)
+            {
+                if (ReferenceEquals(null, obj)) return false;
+                if (ReferenceEquals(this, obj)) return true;
+                if (obj.GetType() != this.GetType()) return false;
+                return Equals((ProjectionSchema) obj);
+            }
+
+            public override int GetHashCode()
+            {
+                return (Type != null ? Type.GetHashCode() : 0);
+            }
+
+            public static bool operator ==(ProjectionSchema left, ProjectionSchema right)
+            {
+                return Equals(left, right);
+            }
+
+            public static bool operator !=(ProjectionSchema left, ProjectionSchema right)
+            {
+                return !Equals(left, right);
+            }
+
             
-            public ProjectionSchema(Type projectionType, string category, params Type[] partitioners)
+            public void AddEventType(Type eventType) { Events.Add(eventType);}
+            
+            public ProjectionSchema([NotNull] Type projectionType, string category, params Type[] partitioners)
             {
                 Type = projectionType;
-                //ProjectionHash = projectionType.ComputeSourceHash();
                 ProjectionHash = projectionType.FullName.ToGuid();
                 Category = category;
-                _events = new List<Type>();
+                Events = new TypeCollection();
                 _tags = new Lazy<HashSet<string>>(() => new HashSet<string>(Type.FullName.Split('.')));
-                Partitioners = partitioners;
+                Partitioners = new TypeCollection(partitioners);
             }
             public Type EventByName(string eventEventType)
             {
                 return Events.FirstOrDefault(x => x.Name == eventEventType || x.FullName == eventEventType);
             }
-
-            public IEnumerable<Type> Partitioners { get; }
 
             private readonly Lazy<HashSet<string>> _tags;
             public IEnumerable<string> Tags => _tags.Value;
@@ -69,20 +94,28 @@ namespace EventDrivenThinking.EventInference.Schema
             {
                 return _tags.Value.Contains(tag);
             }
+
+            public void MakeReadonly()
+            {
+                Partitioners.MakeReadonly();
+                Events.MakeReadonly();
+            }
         }
-        private readonly Dictionary<Type, ProjectionSchema> _event2ProjectionType;
+        private readonly Dictionary<Type, List<ProjectionSchema>> _event2ProjectionType;
         private readonly Dictionary<Type, ProjectionSchema> _modelIndex;
         private readonly List<IProjectionSchema> _metadata;
         public ProjectionSchemaRegister()
         {
-            _event2ProjectionType = new Dictionary<Type, ProjectionSchema>(); 
+            _event2ProjectionType = new Dictionary<Type, List<ProjectionSchema>>(); 
             _metadata = new List<IProjectionSchema>();
             _modelIndex = new Dictionary<Type, ProjectionSchema>();
         }
 
-        public IProjectionSchema FindByEvent(Type evType)
+        public IEnumerable<IProjectionSchema> FindByEvent(Type evType)
         {
-            return _event2ProjectionType[evType];
+            if (_event2ProjectionType.TryGetValue(evType, out var list))
+                return list;
+            else return Array.Empty<IProjectionSchema>();
         }
 
         public IProjectionSchema FindByModelType(Type modelType)
@@ -115,9 +148,14 @@ namespace EventDrivenThinking.EventInference.Schema
                 foreach (var givenMethods in GetGivenMethods(type))
                 {
                     var eventType = givenMethods.GetParameters()[2].ParameterType;
-                    _event2ProjectionType.TryAdd(eventType, m);
+
+                    var list = _event2ProjectionType.GetOrAdd(eventType, (t) => new List<ProjectionSchema>());
+                    list.Add(m);
+
                     m.AddEventType(eventType);
                 }
+
+                m.MakeReadonly();
             }
 
             Events = _event2ProjectionType.Keys.ToArray();

@@ -5,6 +5,7 @@ using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.EventStore;
+using EventDrivenThinking.EventInference.InMemory;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.QueryProcessing;
 using EventDrivenThinking.EventInference.SessionManagement;
@@ -68,6 +69,10 @@ namespace EventDrivenThinking.App.Configuration
             _collection.TryAddSingleton<IClientSessionRegister, ClientSessionRegister>();
             _collection.TryAddSingleton<IEventConverter, EventConverter>();
             _collection.TryAddSingleton<ISessionManager, SessionManager>();
+
+            // InMemoryspecific
+            _collection.TryAddSingleton<IInMemoryProjectionStreamRegister, InMemoryProjectionStreamRegister>();
+
             _collection.TryAddScoped<SessionContext>();
             _collection.TryAddScoped<IHttpSessionManager>(sp => sp.GetRequiredService<SessionContext>());
             _collection.TryAddScoped<ISessionContext>(sp => sp.GetRequiredService<SessionContext>());

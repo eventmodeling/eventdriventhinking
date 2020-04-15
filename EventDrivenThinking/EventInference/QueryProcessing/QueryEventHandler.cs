@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
@@ -20,7 +21,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
         {
             _projectionHandler = projectionHandler;
             _model = model;
-            _queries = queries;
+            _queries = queries.ToArray();
             _dispatcherQueue = dispatcherQueue;
         }
 

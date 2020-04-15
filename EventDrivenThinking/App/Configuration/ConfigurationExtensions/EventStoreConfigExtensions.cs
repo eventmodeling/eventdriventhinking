@@ -20,7 +20,8 @@ namespace EventDrivenThinking.App.Configuration
         {
             return config.Merge(new AggregateSliceStartup());
         }   
-        public static FeaturePartition UseEventStore(this ProjectionsConfig config, bool withGlobalHandlers = true)
+        public static FeaturePartition UseEventStore(this ProjectionsConfig config, 
+            bool withGlobalHandlers = true)
         {
             return config.Merge(new ProjectionsSliceStartup(withGlobalHandlers));
         }   

@@ -50,7 +50,10 @@ namespace EventDrivenThinking.EventInference.InMemory
                     new EventEnvelope(e, _metadataFactory.Create(key, correlationId, e, 0)))
                 .ToArray();
 
-           
+            lock (list)
+            {
+                list.AddRange(result);
+            }
             LogEvents(key, 0, result);
             foreach (var e in result)
             {

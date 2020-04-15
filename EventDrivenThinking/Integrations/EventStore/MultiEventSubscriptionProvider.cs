@@ -30,6 +30,8 @@ namespace EventDrivenThinking.Integrations.EventStore
             _schema = schema;
         }
 
+        public string Type => "EventStore";
+
         public void Init(IProjectionSchema schema)
         {
             _schema = schema;
@@ -66,19 +68,22 @@ namespace EventDrivenThinking.Integrations.EventStore
             await _eventStore.SubscribeToStreamAsync(projectionStreamName, StreamRevision.Start,  
                 async (s, r, c) =>
             {
-                var type = _schema.EventByName(r.Event.EventType);
-                if (type != null && supportedTypes.Contains(type))
+                if (r.IsResolved)
                 {
-                    using (var scope = factory.Scope())
+                    var type = _schema.EventByName(r.Event.EventType);
+                    if (type != null && supportedTypes.Contains(type))
                     {
-                        var handler = scope.CreateHandler(type);
+                        using (var scope = factory.Scope())
+                        {
+                            var handler = scope.CreateHandler(type);
 
-                        var (m, e) = _eventConverter.Convert(type, r);
+                            var (m, e) = _eventConverter.Convert(type, r);
 
-                        await handler.Execute(m, e);
+                            await handler.Execute(m, e);
+                        }
                     }
                 }
-            }, ss => s.MakeLive());
+            }, ss => s.MakeLive(),true);
 
             return s;
         }

@@ -28,13 +28,7 @@ namespace EventDrivenThinking.EventInference.EventStore
         public Position GlobalPosition;
         public StreamRevision StreamRevision;
 
-        public bool IsStart
-        {
-            get
-            {
-                return GlobalPosition.PreparePosition == 0 && GlobalPosition.CommitPosition == 0UL;
-            }
-        }
+        public bool IsStart => GlobalPosition.PreparePosition == 0 && GlobalPosition.CommitPosition == 0UL;
     }
     public interface IStreamPosition { }
     public interface IProjectionEventStream

@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using EventDrivenThinking.EventInference.Abstractions;
+using EventDrivenThinking.Utils;
 
 namespace EventDrivenThinking.EventInference.Schema
 {
@@ -14,7 +15,10 @@ namespace EventDrivenThinking.EventInference.Schema
         [DebuggerDisplay("Type: {Type.Name} Category: {Category}")]
         class EventSchema : IEventSchema
         {
+            private readonly HashSet<IProjectionSchema> _projections;
             public Type Type { get; }
+
+            public IEnumerable<IProjectionSchema> Projections => _projections;
             public string Category { get; }
             
 
@@ -23,6 +27,12 @@ namespace EventDrivenThinking.EventInference.Schema
                 Type = type;
                 Category = category;
                 _tags = new Lazy<HashSet<string>>(() => new HashSet<string>(Type.FullName.Split('.')));
+                _projections = new HashSet<IProjectionSchema>();
+            }
+
+            public void AppendProjections(IEnumerable<IProjectionSchema> projectionTypes)
+            {
+                foreach (var i in projectionTypes) _projections.Add(i);
             }
             private readonly Lazy<HashSet<string>> _tags;
             public IEnumerable<string> Tags => _tags.Value;
@@ -39,9 +49,15 @@ namespace EventDrivenThinking.EventInference.Schema
         
         public void Discover(IEnumerable<Type> types)
         {
+            ProjectionSchemaRegister helper = new ProjectionSchemaRegister();
+            helper.Discover(types);
+
             foreach (var t in types.Where(x=> typeof(IEvent).IsAssignableFrom(x) && !x.IsAbstract))
             {
-                _events.Add(new EventSchema(t, ServiceConventions.GetCategoryFromNamespace(t.Namespace)));
+                var eventSchema = new EventSchema(t, ServiceConventions.GetCategoryFromNamespace(t.Namespace));
+                var findByEvent = helper.FindByEvent(t);
+                eventSchema.AppendProjections(findByEvent);
+                _events.Add(eventSchema);
             }
         }
 

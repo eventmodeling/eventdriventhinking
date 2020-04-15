@@ -29,6 +29,8 @@ namespace EventDrivenThinking.Integrations.EventStore
         }
 
 
+        public string Type => "EventStore";
+
         public void Init(IProcessorSchema schema)
         {
             _schema = schema;

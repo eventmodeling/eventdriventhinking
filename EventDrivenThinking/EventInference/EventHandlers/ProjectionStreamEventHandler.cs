@@ -14,16 +14,15 @@ namespace EventDrivenThinking.EventInference.EventHandlers
         where TProjection : IProjection
         where TEvent : IEvent
     {
-        private readonly TProjection _projection;
         private static readonly ILogger Log = LoggerFactory.For<ProjectionStreamEventHandler<TProjection, TEvent>>();
         private readonly IProjectionEventStream<TProjection> _projectionStream;
         private readonly IEnumerable<IProjectionStreamPartitioner<TProjection>> _partitioners;
 
-        public ProjectionStreamEventHandler(TProjection projection,
+        public ProjectionStreamEventHandler(
             IProjectionEventStream<TProjection> projectionStream,
             IEnumerable<IProjectionStreamPartitioner<TProjection>> partitioners)
         {
-            _projection = projection;
+            
 
             _projectionStream = projectionStream;
             _partitioners = partitioners;
@@ -38,7 +37,7 @@ namespace EventDrivenThinking.EventInference.EventHandlers
 
             foreach (var i in _partitioners)
             {
-                var partitions = i.CalculatePartitions(_projection.Model, m, ev);
+                var partitions = i.CalculatePartitions(m, ev);
                 foreach (var p in partitions)
                     await _projectionStream.AppendPartition(p, m, ev);
             }

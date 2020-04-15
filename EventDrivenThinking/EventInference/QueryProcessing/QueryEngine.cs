@@ -97,19 +97,28 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             var queryParitioner =  _serviceProvider.GetService<IEnumerable<IQueryPartitioner<TQuery>>>()
                 .SingleOrDefault();
             
-            var partitionId = queryParitioner?.CalculatePartition(GetModel(), query);
+            var partitionId = queryParitioner?.CalculatePartition(query);
 
             LiveQuery<TQuery,TModel, TResult> liveQuery = new LiveQuery<TQuery, TModel,  TResult>(query, partitionId, queryHandler, schema, OnQueryDispose, options);
 
             var streamInfo = _partitions.GetOrAdd(partitionId.HasValue ? partitionId.Value : _rootPartitionId, pid => new DataPartitionStream<TModel>(pid, this, _subscriptionController, projectionSchema, !partitionId.HasValue));
             
             await streamInfo.Catchup();
-            await Task.Delay(500); // Check
-
+            
             streamInfo.AppendQuery(liveQuery);
 
             _liveQueries.TryAdd(liveQuery.Query, liveQuery);
             
+            // HACK
+            if (liveQuery.Options.ExpectNotNull)
+            {
+                while (liveQuery.Result == null)
+                {
+                    liveQuery.Load(GetModel());
+                    await Task.Delay(100);
+                }
+            }
+
             return liveQuery;
         }
 

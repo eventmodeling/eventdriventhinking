@@ -10,6 +10,7 @@ using EventDrivenThinking.EventInference.InMemory;
 using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Logging;
 using Prism.Events;
 using Serilog;
 
@@ -21,8 +22,10 @@ namespace EventDrivenThinking.Integrations.EventAggregator
     }
     public class InMemoryEventStream : IEventStream
     {
+        private static readonly  ILogger Log = LoggerFactory.For<InMemoryEventStream>();
         private readonly IEventAggregator _aggregator;
-        private List<EventEnvelope> _events;
+        private readonly List<EventEnvelope> _events;
+
 
         public InMemoryEventStream(IEventAggregator aggregator, 
             IProjectionSchemaRegister projectionSchema)
@@ -42,7 +45,12 @@ namespace EventDrivenThinking.Integrations.EventAggregator
         private void SubscribeCore<TEventType>() where TEventType : IEvent
         {
             _aggregator.GetEvent<PubSubEvent<EventEnvelope<TEventType>>>()
-                .Subscribe(ev => _events.Add(ev), ThreadOption.UIThread, true);
+                .Subscribe(ev =>
+                {
+                    _events.Add(ev);
+                    Log.Debug("Saving in-memory event {eventName} for aggregate {aggregateName}", 
+                        typeof(TEventType).Name, ev.Metadata.AggregateType.Name );
+                }, ThreadOption.PublisherThread, true);
         }
     }
     public class EventAggregatorModelProjectionSubscriber<TModel,TProjection> : IModelProjectionSubscriber<TModel>
@@ -77,7 +85,7 @@ namespace EventDrivenThinking.Integrations.EventAggregator
                 if(partitionId == x.PartitionId)
                     onEvents(new (EventMetadata, IEvent)[] {(x.Event.Metadata, x.Event.Event)}).GetAwaiter().GetResult();
 
-            }, ThreadOption.UIThread));
+            }, ThreadOption.UIThread,true));
 
             onLiveStarted?.Invoke(subscription);
 

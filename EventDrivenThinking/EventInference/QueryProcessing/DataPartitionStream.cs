@@ -49,7 +49,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
 
             if (!IsRootStream)
             {
-                _subscription = await _subscriptionController.SubscribeHandlers(_schema, handlerFactory, PartitionId.Value);
+                _subscription = await _subscriptionController.SubscribeHandlers(_schema, handlerFactory, null, PartitionId.Value);
             }
             else
                 _subscription = await _subscriptionController.SubscribeHandlers(_schema, handlerFactory);
@@ -59,6 +59,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
         {
             if (_associatedQueries.TryAdd(liveQuery.Query, liveQuery))
             {
+                // this might fail - projection might not yet processed all the events.
                 liveQuery.Load(_engine.GetModel());
             }
         }

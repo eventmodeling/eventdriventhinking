@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Projections;
 using EventDrivenThinking.EventInference.Schema;
@@ -18,11 +19,13 @@ namespace EventDrivenThinking.App.Configuration.EventStore
         private static ILogger Log = EventDrivenThinking.Logging.LoggerFactory.For<ProjectionsSliceStartup>();
 
         private IProjectionSchema[] _projections;
-        private bool _withGlobalHandlers;
+        private readonly bool _withGlobalHandlers;
+        
 
         public ProjectionsSliceStartup(in bool withGlobalHandlers)
         {
             this._withGlobalHandlers = withGlobalHandlers;
+        
         }
 
         public void RegisterServices(IServiceCollection serviceCollection)
@@ -58,8 +61,8 @@ namespace EventDrivenThinking.App.Configuration.EventStore
                 {
                     await controller.SubscribeHandlers(i, new ProjectionEventHandlerFactory(serviceProvider, i));
                     await streamController.SubscribeHandlers(i, new ProjectionStreamEventHandlerFactory(serviceProvider,i)); // this will load checkpoints.
-                    
-                }}
+                }
+            }
         }
 
         public void Initialize(IEnumerable<IProjectionSchema> projections)

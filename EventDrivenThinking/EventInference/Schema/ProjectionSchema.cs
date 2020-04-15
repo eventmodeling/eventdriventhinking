@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using EventDrivenThinking.Utils;
 
 namespace EventDrivenThinking.EventInference.Schema
 {
@@ -12,7 +13,7 @@ namespace EventDrivenThinking.EventInference.Schema
         public string Category => _schema.Category;
 
         public Guid ProjectionHash => _schema.ProjectionHash;
-        public IEnumerable<Type> Events => _schema.Events;
+        public TypeCollection Events => _schema.Events;
         public IEnumerable<string> Tags => _schema.Tags;
 
         public bool IsTaggedWith(string tag)
@@ -28,7 +29,14 @@ namespace EventDrivenThinking.EventInference.Schema
             return _schema.EventByName(eventEventType);
         }
 
-        public IEnumerable<Type> Partitioners => _schema.Partitioners;
+        
+
+        public override int GetHashCode()
+        {
+            return _schema.GetHashCode();
+        }
+
+        public TypeCollection Partitioners => _schema.Partitioners;
 
         public ProjectionSchema(IProjectionSchema schema)
         {

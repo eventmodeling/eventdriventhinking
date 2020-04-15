@@ -51,7 +51,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             _handler = handler;
             _onDispose = onDispose;
             Query = query;
-            Options = options;
+            Options = options ?? new QueryOptions();
             PartitionId = partitionId;
         }
 
@@ -59,15 +59,14 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
         {
             var result = _handler.Execute((TModel)model, Query);
             if (Status == LiveQueryStatus.Initialized)
-                OnResult(result);
+            {
+                if(result != null || !Options.ExpectNotNull)
+                    OnResult(result);
+            }
             else OnUpdate(result);
         }
         internal void OnResult(TResult result)
         {
-            if (result == null && typeof(TResult).Name == "Board")
-                Debugger.Break();
-
-            
             this.Result = result;
             lock (this)
             {
