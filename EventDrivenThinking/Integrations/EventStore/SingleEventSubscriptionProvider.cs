@@ -26,7 +26,9 @@ namespace EventDrivenThinking.Integrations.EventStore
 
         public void Init(IProjectionSchema schema)
         {
-            _schema = schema;
+            if(_schema == null || Equals(_schema, schema))
+                _schema = schema;
+            else throw new InvalidOperationException();
         }
 
         public virtual bool CanMerge(ISubscriptionProvider<IProjection, IProjectionSchema> other)

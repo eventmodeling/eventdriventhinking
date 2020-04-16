@@ -20,7 +20,9 @@ namespace EventDrivenThinking.Integrations.EventAggregator
 
         public void Init(IProjectionSchema schema)
         {
-            _schema = schema;
+            if (_schema == null || Equals(_schema, schema))
+                _schema = schema;
+            else throw new InvalidOperationException();
         }
         protected SingleEventSubscriptionProvider( IEventAggregator eventAggregator)
         {

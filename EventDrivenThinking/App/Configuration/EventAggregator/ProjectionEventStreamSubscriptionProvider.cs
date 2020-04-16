@@ -21,7 +21,9 @@ namespace EventDrivenThinking.App.Configuration.EventAggregator
         protected IProjectionSchema _schema;
         public void Init(IProjectionSchema schema)
         {
-            _schema = schema;
+            if (_schema == null || Equals(_schema, schema))
+                _schema = schema;
+            else throw new InvalidOperationException();
         }
         public abstract Type EventType { get; }
         public abstract bool CanMerge(ISubscriptionProvider<IProjectionEventStream, IProjectionSchema> other);

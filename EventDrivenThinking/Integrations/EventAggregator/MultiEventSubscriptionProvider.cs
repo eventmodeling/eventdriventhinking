@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
@@ -24,7 +25,9 @@ namespace EventDrivenThinking.Integrations.EventAggregator
 
         public void Init(IProjectionSchema schema)
         {
-            _schema = schema;
+            if (_schema == null || Equals(_schema, schema))
+                _schema = schema;
+            else throw new InvalidOperationException();
         }
         public MultiEventSubscriptionProvider(SingleEventSubscriptionProvider singleEventSubscription, IEventAggregator eventAggregator,
             IProjectionSchema schema)
@@ -56,6 +59,7 @@ namespace EventDrivenThinking.Integrations.EventAggregator
         public async Task<ISubscription> Subscribe( IEventHandlerFactory factory,
             object[] args = null)
         {
+            //Func<IProjectionSchema, IEventHandlerFactory, object[], Task<ISubscription>> _invocation;
             if (_invocation == null)
             {
                 MethodInfo m = typeof(MultiEventSubscriptionProvider).GetMethod(nameof(Subscribe),
@@ -90,8 +94,8 @@ namespace EventDrivenThinking.Integrations.EventAggregator
                         handler.Execute(e.Event.Metadata, e.Event.Event).GetAwaiter().GetResult();
                     }
                 }
-            }, ThreadOption.UIThread,true);
-
+            }, ThreadOption.PublisherThread,true);
+            Debug.WriteLine($"SUBSCRIBING projection {typeof(TProjection).Name}");
             return new Subscription(true);
         }
     }

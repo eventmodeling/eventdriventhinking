@@ -33,7 +33,9 @@ namespace EventDrivenThinking.Integrations.EventStore
 
         public void Init(IProcessorSchema schema)
         {
-            _schema = schema;
+            if (_schema == null || Equals(_schema, schema))
+                _schema = schema;
+            else throw new InvalidOperationException();
         }
 
         public bool CanMerge(ISubscriptionProvider<IProcessor, IProcessorSchema> other)

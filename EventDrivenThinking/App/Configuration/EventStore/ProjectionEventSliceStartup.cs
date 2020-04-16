@@ -30,12 +30,12 @@ namespace EventDrivenThinking.App.Configuration.EventStore
                 Log.Debug("{eventName} is subscribed for projection subscriptions in EventStore.", i.Type.Name);
                 var service = typeof(IEventSubscriptionProvider<,,>).MakeGenericType(typeof(IProjection), typeof(IProjectionSchema), i.Type);
                 var impl = typeof(ProjectionEventSubscriptionProvider<>).MakeGenericType(i.Type);
-                serviceCollection.AddSingleton(service, impl);
+                serviceCollection.AddTransient(service, impl);
 
 
                 service = typeof(IEventSubscriptionProvider<,,>).MakeGenericType(typeof(IProjectionEventStream), typeof(IProjectionSchema), i.Type);
                 impl = typeof(ProjectionEventStreamSubscriptionProvider<>).MakeGenericType(i.Type);
-                serviceCollection.AddSingleton(service, impl);
+                serviceCollection.AddTransient(service, impl);
             }
         }
 

@@ -28,7 +28,7 @@ namespace EventDrivenThinking.App.Configuration.EventAggregator
                 Log.Debug("{eventName} is subscribed for projection subscriptions in EventStore.", i.Type.Name);
                 var service = typeof(IEventSubscriptionProvider<,,>).MakeGenericType(typeof(IProcessor), typeof(IProcessorSchema), i.Type);
                 var impl = typeof(ProcessorEventSubscriptionProvider<>).MakeGenericType(i.Type);
-                serviceCollection.AddSingleton(service, impl);
+                serviceCollection.AddTransient(service, impl);
 
             }
         }
