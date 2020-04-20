@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace EventDrivenThinking.EventInference.QueryProcessing
 {
-    class LiveQuery<TQuery,TModel, TResult> : ILiveQuery, ILiveResult<TResult>
+    public class LiveQuery<TQuery,TModel, TResult> : ILiveQuery, ILiveResult<TResult>
         where TQuery : IQuery<TModel, TResult>
         where TModel : IModel
     {
@@ -65,7 +65,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             }
             else OnUpdate(result);
         }
-        internal void OnResult(TResult result)
+        public void OnResult(TResult result)
         {
             this.Result = result;
             lock (this)
@@ -76,7 +76,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             }
         }
 
-        internal void OnUpdate(TResult result)
+        public void OnUpdate(TResult result)
         {
             if(result == null)
                 Debugger.Break();

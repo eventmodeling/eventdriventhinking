@@ -5,9 +5,7 @@ using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.EventHandlers;
 using EventDrivenThinking.EventInference.EventStore;
-using EventDrivenThinking.EventInference.InMemory;
 using EventDrivenThinking.EventInference.Projections;
-using EventDrivenThinking.EventInference.QueryProcessing;
 using EventDrivenThinking.EventInference.SessionManagement;
 using EventDrivenThinking.EventInference.Subscriptions;
 using EventDrivenThinking.Integrations.Carter;
@@ -22,16 +20,17 @@ namespace EventDrivenThinking.App.Configuration
 {
     public class Bootstrapper : IBootstrapper
     {
-        private readonly IServiceCollection _collection;
-        private readonly Configuration _config;
+        protected readonly IServiceCollection _collection;
+        protected readonly Configuration _config;
         public Configuration Configuration => _config;
-        internal Bootstrapper(ILogger logger, IServiceCollection collection)
+
+        public Bootstrapper(ILogger logger, IServiceCollection collection)
         {
             _collection = collection;
             _config = new Configuration(logger);
         }
 
-        public void Register(Action<Configuration> config)
+        public virtual void Register(Action<Configuration> config)
         {
             RegisterServices();
 
@@ -39,16 +38,16 @@ namespace EventDrivenThinking.App.Configuration
             _config.Slices.Register(_collection);
         }
 
-        private void RegisterServices()
+        protected virtual void RegisterServices()
         {
             _collection.AddSingleton<IBootstrapper>(this);
             _collection.TryAddSingleton<IModelFactory, ModelFactory>();
-            _collection.TryAddSingleton<IQueryInvoker, QueryInvoker>();
+            
 
 
             // common registrations
             _collection.TryAddTransient(typeof(IProjectionExecutor<>), typeof(ProjectionExecutor<>));
-            _collection.TryAddSingleton(typeof(IQueryEngine<>), typeof(QueryEngine<>));
+           
             
             _collection.TryAddSingleton(typeof(ICheckpointRepository<,>),typeof(FileCheckpointRepository<,>));
 
@@ -71,7 +70,7 @@ namespace EventDrivenThinking.App.Configuration
             _collection.TryAddSingleton<ISessionManager, SessionManager>();
 
             // InMemoryspecific
-            _collection.TryAddSingleton<IInMemoryProjectionStreamRegister, InMemoryProjectionStreamRegister>();
+            //
 
             _collection.TryAddScoped<SessionContext>();
             _collection.TryAddScoped<IHttpSessionManager>(sp => sp.GetRequiredService<SessionContext>());

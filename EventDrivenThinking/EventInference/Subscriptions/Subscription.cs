@@ -3,7 +3,7 @@ using Nito.AsyncEx;
 
 namespace EventDrivenThinking.EventInference.Subscriptions
 {
-    class Subscription : ISubscription
+    public class Subscription : ISubscription
     {
         private readonly AsyncManualResetEvent _catchup;
 

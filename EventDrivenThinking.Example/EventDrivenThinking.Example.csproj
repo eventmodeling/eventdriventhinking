@@ -9,6 +9,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\EventDrivenThinking.WPF\EventDrivenThinking.WPF.csproj" />
     <ProjectReference Include="..\EventDrivenThinking\EventDrivenThinking.csproj" />
   </ItemGroup>
 

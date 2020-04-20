@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
-using System.Windows.Documents;
 using EventDrivenThinking.EventInference.Abstractions.Write;
 
 namespace EventDrivenThinking.EventInference.Abstractions

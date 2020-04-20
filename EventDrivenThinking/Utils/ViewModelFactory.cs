@@ -1,9 +1,13 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Collections.Specialized;
 using System.ComponentModel;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
+using System.Runtime.CompilerServices;
+using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.Reflection;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -398,6 +402,103 @@ namespace EventDrivenThinking.Ui
         public static T Create(IServiceProvider serviceProvider)
         {
            return (T)ActivatorUtilities.GetServiceOrCreateInstance(serviceProvider, ProxyType);
+        }
+    }
+    public interface IViewModelCollection<T> : INotifyCollectionChanged,
+        ICollection<T>, INotifyPropertyChanged, IModel
+    {
+
+    }
+
+
+    public class ViewModelCollection<T> : IViewModelCollection<T>
+    {
+        private readonly IList<T> _inner;
+
+        public ViewModelCollection(IList<T> inner)
+        {
+            _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+        }
+
+        public IEnumerator<T> GetEnumerator()
+        {
+            return _inner.GetEnumerator();
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return ((IEnumerable)_inner).GetEnumerator();
+        }
+
+        public void Add(T item)
+        {
+            _inner.Add(item);
+            OnCollectionChanged(NotifyCollectionChangedAction.Add, item);
+            OnPropertyChanged(nameof(Count));
+        }
+
+        public void Clear()
+        {
+            _inner.Clear();
+            OnCollectionChanged(NotifyCollectionChangedAction.Reset);
+            OnPropertyChanged(nameof(Count));
+        }
+
+        public bool Contains(T item)
+        {
+            return _inner.Contains(item);
+        }
+
+        public void CopyTo(T[] array, int arrayIndex)
+        {
+            _inner.CopyTo(array, arrayIndex);
+        }
+
+        public bool Remove(T item)
+        {
+            var index = _inner.IndexOf(item);
+            if (index >= 0)
+            {
+                _inner.RemoveAt(index);
+                OnCollectionChanged(NotifyCollectionChangedAction.Remove, item, index);
+                OnPropertyChanged(nameof(Count));
+                return true;
+            }
+
+            return false;
+
+        }
+
+        public int Count => _inner.Count;
+
+        public bool IsReadOnly => _inner.IsReadOnly;
+        public event NotifyCollectionChangedEventHandler CollectionChanged;
+        public event PropertyChangedEventHandler PropertyChanged;
+
+        private void OnCollectionChanged(NotifyCollectionChangedEventArgs args)
+        {
+            var ev = CollectionChanged;
+            ev?.Invoke(this, args);
+        }
+
+        private void OnCollectionChanged(NotifyCollectionChangedAction action)
+        {
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(action));
+        }
+
+        private void OnCollectionChanged(NotifyCollectionChangedAction action, T item, int index)
+        {
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(action, item, index));
+        }
+        private void OnCollectionChanged(NotifyCollectionChangedAction action, T item)
+        {
+            OnCollectionChanged(new NotifyCollectionChangedEventArgs(action, item));
+        }
+
+        [NotifyPropertyChangedInvocator]
+        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

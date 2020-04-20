@@ -17,7 +17,7 @@ using EventDrivenThinking.Logging;
 using EventDrivenThinking.Ui;
 using Microsoft.Extensions.DependencyInjection;
 using Nito.AsyncEx;
-using Prism.Events;
+
 using Serilog;
 
 namespace EventDrivenThinking.EventInference.QueryProcessing
