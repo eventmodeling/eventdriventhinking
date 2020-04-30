@@ -2,6 +2,12 @@
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>This is experimental playground for event-driven-thinking mindset. Designed for WPF applications.</Description>
+    <PackageProjectUrl>https://github.com/eventmodeling/eventdriventhinking</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/eventmodeling/eventdriventhinking</RepositoryUrl>
+    <RepositoryType>Git</RepositoryType>
+    <PackageTags>EventDrivenThinking, EventSourcing, DDD, EventModeling, EventStorming, WPF</PackageTags>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="EventStore.Client" Version="6.0.0-preview3" />

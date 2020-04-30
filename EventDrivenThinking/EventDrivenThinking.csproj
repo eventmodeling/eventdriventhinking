@@ -11,7 +11,7 @@
     <PackageProjectUrl>https://github.com/eventmodeling/eventdriventhinking</PackageProjectUrl>
     <RepositoryUrl>https://github.com/eventmodeling/eventdriventhinking.git</RepositoryUrl>
     <RepositoryType>Git</RepositoryType>
-    <PackageTags>EventSourcing, DDD, EventModeling, EventStorming</PackageTags>
+    <PackageTags>EventDrivenThinking, EventSourcing, DDD, EventModeling, EventStorming</PackageTags>
     <Copyright />
   </PropertyGroup>
 
