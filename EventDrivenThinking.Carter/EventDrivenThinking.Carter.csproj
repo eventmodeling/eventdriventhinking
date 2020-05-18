@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <Description>This is experimental playground for event-driven-thinking mindset with carter.</Description>
+    <PackageProjectUrl>https://github.com/eventmodeling/eventdriventhinking</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/eventmodeling/eventdriventhinking.git</RepositoryUrl>
+    <PackageTags>EventDrivenThinking, EventSourcing, DDD, EventModeling, EventStorming</PackageTags>
+    <RepositoryType>Git</RepositoryType>
+    <Authors>EventDrivenThinking Community</Authors>
+    <Company>EventDrivenThinking Community</Company>
+    <Product>EventDrivenThinking</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Carter" Version="5.1.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EventDrivenThinking\EventDrivenThinking.csproj" />
+  </ItemGroup>
+
+</Project>

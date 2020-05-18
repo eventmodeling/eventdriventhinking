@@ -1,21 +1,20 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using Carter;
 using Carter.Request;
 using Carter.Response;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Write;
-using EventDrivenThinking.EventInference.CommandHandlers;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Reflection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Serilog;
 
-namespace EventDrivenThinking.Integrations.Carter
+namespace EventDrivenThinking.Carter
 {
     // TODO: Optimize - first execution should cache further POST/PUT/GET configurations. 
     // On startup we should fail fast if something go wrong
@@ -32,7 +31,6 @@ namespace EventDrivenThinking.Integrations.Carter
             ILogger logger,
             IServiceProvider serviceProvider)
         {
-
             foreach (var i in schema.Commands)
             {
                 //TODO: should cache ctor for performance

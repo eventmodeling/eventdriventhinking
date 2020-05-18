@@ -1,10 +1,9 @@
 ﻿using System;
 using System.Linq;
 using Carter;
-using EventDrivenThinking.App.Configuration.Carter;
-using EventDrivenThinking.Integrations.Carter;
+using EventDrivenThinking.App.Configuration;
 
-namespace EventDrivenThinking.App.Configuration
+namespace EventDrivenThinking.Carter
 {
     public static class CarterConfigExtensions
     {

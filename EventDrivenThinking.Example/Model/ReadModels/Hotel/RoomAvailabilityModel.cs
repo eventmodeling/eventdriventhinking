@@ -7,7 +7,7 @@ using EventDrivenThinking.EventInference.Models;
 using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Utils;
-using Microsoft.AspNetCore.Hosting;
+
 
 namespace EventDrivenThinking.Example.Model.ReadModels.Hotel
 {

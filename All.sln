@@ -9,7 +9,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventDrivenThinking.Tests",
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventDrivenThinking.Example", "EventDrivenThinking.Example\EventDrivenThinking.Example.csproj", "{27888A72-38FB-4CEB-AA01-B7EB849437AE}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventDrivenThinking.WPF", "EventDrivenThinking.WPF\EventDrivenThinking.WPF.csproj", "{A564B692-99C0-44B3-A6C7-FEE85C8BA7BF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventDrivenThinking.WPF", "EventDrivenThinking.WPF\EventDrivenThinking.WPF.csproj", "{A564B692-99C0-44B3-A6C7-FEE85C8BA7BF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventDrivenThinking.Carter", "EventDrivenThinking.Carter\EventDrivenThinking.Carter.csproj", "{BFE54C2F-0DED-4A12-9F38-148399A76332}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{A564B692-99C0-44B3-A6C7-FEE85C8BA7BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{A564B692-99C0-44B3-A6C7-FEE85C8BA7BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{A564B692-99C0-44B3-A6C7-FEE85C8BA7BF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BFE54C2F-0DED-4A12-9F38-148399A76332}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BFE54C2F-0DED-4A12-9F38-148399A76332}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BFE54C2F-0DED-4A12-9F38-148399A76332}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BFE54C2F-0DED-4A12-9F38-148399A76332}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

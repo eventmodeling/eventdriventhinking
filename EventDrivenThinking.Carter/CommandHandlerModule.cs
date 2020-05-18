@@ -1,19 +1,17 @@
 ﻿using System;
-using System.Collections;
-using System.Diagnostics;
 using System.IO;
 using Carter;
 using Carter.Request;
 using Carter.Response;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Write;
-using EventDrivenThinking.EventInference.CommandHandlers;
 using EventDrivenThinking.EventInference.Schema;
+using EventDrivenThinking.Integrations.Carter;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
 using Serilog;
 
-namespace EventDrivenThinking.Integrations.Carter
+namespace EventDrivenThinking.Carter
 {
     internal class CommandHandlerModule<TCommand> : CarterModule where TCommand : ICommand
     {

@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using EventDrivenThinking.EventInference.Schema;
 
-namespace EventDrivenThinking.Integrations.Carter
+namespace EventDrivenThinking.Carter
 {
     public class CarterModuleFactory
     {

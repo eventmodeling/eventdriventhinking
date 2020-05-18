@@ -6,6 +6,7 @@ using System.Reflection;
 using System.Threading.Tasks;
 using Carter;
 using EventDrivenThinking.App.Configuration;
+using EventDrivenThinking.Carter;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Projections;

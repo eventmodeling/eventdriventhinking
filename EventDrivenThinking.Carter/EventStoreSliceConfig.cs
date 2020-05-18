@@ -2,11 +2,11 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using EventDrivenThinking.App.Configuration;
 using EventDrivenThinking.EventInference.Schema;
-using EventDrivenThinking.Integrations.Carter;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace EventDrivenThinking.App.Configuration.Carter
+namespace EventDrivenThinking.Carter
 {
     public class CarterComandHandlerSliceStartup : IAggregateSliceStartup, IServiceExtensionConfigProvider
     {
