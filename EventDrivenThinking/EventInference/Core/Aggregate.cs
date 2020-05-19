@@ -14,7 +14,7 @@ namespace EventDrivenThinking.EventInference.Core
     public class AggregateNotInitializedException : Exception
     {
     }
-
+    public interface IId { Guid Id { get; set; } }
     public abstract class Aggregate<TState> : IAggregate
         where TState : new()
     {
@@ -27,10 +27,20 @@ namespace EventDrivenThinking.EventInference.Core
             ExecuteFuncCache =
                 new ConcurrentDictionary<(Type aggregateType, Type commandType),
                     Func<TState, ICommand, IEvent[]>>();
-        
-        public virtual Guid Id { get; set; }
-        
+
+        public virtual Guid Id
+        {
+            get => _id;
+            set
+            {
+                _id = value;
+                if (_state is IId _stateId)
+                    _stateId.Id = value;
+            }
+        }
+
         private ulong _version;
+        private Guid _id;
         protected virtual TState _state { get; private set; }
         
         protected Aggregate()
