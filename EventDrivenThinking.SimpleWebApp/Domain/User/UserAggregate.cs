@@ -9,6 +9,14 @@ using EventDrivenThinking.EventInference.Models;
 
 namespace EventDrivenThinking.SimpleWebApp.User
 {
+    public class UserProcessor : Processor<UserProcessor>
+    {
+        public IEnumerable<(Guid, ICommand)> When(EventMetadata m, UserCreated ev)
+        {
+            yield break;
+        }
+    }
+
     public class UserAggregate : Aggregate<UserAggregate.State>
     {
         public struct State

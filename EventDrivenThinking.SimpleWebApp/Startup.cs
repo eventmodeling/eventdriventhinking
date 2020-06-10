@@ -7,6 +7,7 @@ using EventDrivenThinking.App.Configuration;
 using EventDrivenThinking.Carter;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.Logging;
+using EventDrivenThinking.SimpleWebApp.Views.User;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -49,6 +50,8 @@ namespace EventDrivenThinking.SimpleWebApp
             });
             services.AddCarter(configurator: config.GetCarterConfigurator());
             services.AddSignalR();
+
+            services.AddSingleton<UserModel>();
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
