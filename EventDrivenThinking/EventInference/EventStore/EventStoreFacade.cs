@@ -30,6 +30,9 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         public EventStoreFacade(string httpUrl, string tcpUrl, string user, string password)
         {
+            if (httpUrl.StartsWith("http://"))
+                throw new InvalidOperationException("Ssl is required to work.");
+
             var tcpUri = new Uri(tcpUrl);
             
             ConnectionSettings tcpSettings = ConnectionSettings.Create()
@@ -49,6 +52,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 
             var httpSettings = new EventStoreClientSettings();
             httpSettings.ConnectivitySettings.Address = new Uri(httpUrl);
+
             DefaultCredentials = new UserCredentials(user, password);
             _httpClient = new HttpEventStoreChannel(new EventStoreClient(httpSettings));
             _tcpClient = new TcpEventStoreChannel(_tcp);

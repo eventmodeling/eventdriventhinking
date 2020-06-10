@@ -30,8 +30,10 @@ namespace EventDrivenThinking.App.Configuration
                 foreach (var c in i.Commands)
                 {
                     Type[] args = new[] { at, c.Type };
-                    collection.AddScoped(typeof(ICommandHandler<>).MakeGenericType(c.Type),
-                        typeof(AggregateCommandHandler<,>).MakeGenericType(args));
+                    var implementationType = typeof(AggregateCommandHandler<,>).MakeGenericType(args);
+                    collection.TryAddScoped(typeof(ICommandHandler<>).MakeGenericType(c.Type),
+                        implementationType);
+                    collection.AddScoped(implementationType);
                 }
 
                 Partition.Logger.Information("Discovered {aggregateSchema}", new

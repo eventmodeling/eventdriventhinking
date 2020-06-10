@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Carter" Version="5.1.0" />
+    <PackageReference Include="EventStore.Client" Version="6.0.0-preview3" />
+    <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
+    <PackageReference Include="Serilog" Version="2.10.0-dev-01187" />
+    <PackageReference Include="Serilog.Sinks.Console" Version="3.1.1" />
+    <PackageReference Include="Serilog.Sinks.Debug" Version="1.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\EventDrivenThinking.Carter\EventDrivenThinking.Carter.csproj" />
+    <ProjectReference Include="..\EventDrivenThinking\EventDrivenThinking.csproj" />
+  </ItemGroup>
+
+</Project>

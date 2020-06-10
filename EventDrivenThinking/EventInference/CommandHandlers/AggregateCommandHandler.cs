@@ -34,11 +34,12 @@ namespace EventDrivenThinking.EventInference.CommandHandlers
         }
 
 
-        public async Task When(Guid id, TCommand cmd)
+        public virtual async Task When(Guid id, TCommand cmd)
         {
             _logger.Debug("Invoking a command {commandType} on an aggregate: {aggregateType}", cmd.GetType().Name, typeof(TAggregate).Name);
             var events = _eventStream.Get(id);
-            var aggregate = new TAggregate { Id = id };
+            var aggregate = new TAggregate();
+            aggregate.Id = id;
 
             await aggregate.RehydrateAsync(events);
             var version = aggregate.Version;

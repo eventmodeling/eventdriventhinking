@@ -160,6 +160,7 @@ namespace EventDrivenThinking.EventInference.EventStore
 
         public async Task EnableAll()
         {
+            
             await foreach (var p in ListAllAsync())
             {
                 await EnableAsync(p.Name);

@@ -141,10 +141,10 @@ namespace EventDrivenThinking.Tests.Common
                 config =>
                 {
                     config.AddAssemblies(assemblies);
-                    config.Slices.SelectAll()
-                        //.Projections.NoGlobalHandlers().SubscribeFromEventStore()
-                        .Projections.SubscribeFromSignalR(url)
-                        .Queries.FromEventStore();
+                    config.Slices.SelectAll();
+                    //.Projections.NoGlobalHandlers().SubscribeFromEventStore()
+                    //.Projections.SubscribeFromSignalR(url)
+                    //.Queries.FromEventStore();
                 });
 
             await _client.ServiceProvider.ConfigureEventDrivenThinking();
@@ -371,7 +371,8 @@ namespace EventDrivenThinking.Tests.Common
         {
             if(!_queryEngines.TryGetValue(typeof(TModel), out object engine))
             {
-                engine = ActivatorUtilities.CreateInstance<QueryEngine<TModel>>(_client.ServiceProvider);
+                //engine = ActivatorUtilities.CreateInstance<QueryEngine<TModel>>(_client.ServiceProvider);
+                engine = ActivatorUtilities.CreateInstance<QueryEngine<TModel>>(Startup.ServiceProvider);
                 _queryEngines.Add(typeof(TModel), engine);
             }
             return (IQueryEngine < TModel > )engine;
@@ -403,7 +404,7 @@ namespace EventDrivenThinking.Tests.Common
             {
                 
                 _connection = new EventStoreFacade("https://localhost:2113", "tcp://localhost:1113","admin","changeit");
-                //_connection = new HttpEventStoreClient("tcp://localhost:1113", "admin", "changeit");
+                
                 await _connection.SubscribeToAllAsync(OnEventAppended, true);
             }
 

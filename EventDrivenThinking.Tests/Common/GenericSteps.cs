@@ -208,7 +208,7 @@ namespace EventDrivenThinking.Tests.Common
         [Then(@"I expect (.*)")]
         public async Task ThenIExpectThat(string eventName, Table propertyTable)
         {
-            await Task.Delay(2000);
+            await Task.Delay(5000);
             var evType = Dictionary.FindEvent(eventName);
             var (lastAggregateId, lastEvent) = await _specificationExecutor.FindLestEvent(evType);
             var ev = GetArgument<IEvent>(evType, lastEvent.Id, propertyTable);

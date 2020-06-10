@@ -11,7 +11,11 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventDrivenThinking.Example
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventDrivenThinking.WPF", "EventDrivenThinking.WPF\EventDrivenThinking.WPF.csproj", "{A564B692-99C0-44B3-A6C7-FEE85C8BA7BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventDrivenThinking.Carter", "EventDrivenThinking.Carter\EventDrivenThinking.Carter.csproj", "{BFE54C2F-0DED-4A12-9F38-148399A76332}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "EventDrivenThinking.Carter", "EventDrivenThinking.Carter\EventDrivenThinking.Carter.csproj", "{BFE54C2F-0DED-4A12-9F38-148399A76332}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "EventDrivenThinking.SimpleWebApp", "EventDrivenThinking.SimpleWebApp\EventDrivenThinking.SimpleWebApp.csproj", "{DC5449DD-B58E-4DF7-BDF6-06EC588AFED4}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Examples", "Examples", "{E5DAC5CE-8530-4F3B-8A9B-D91BFDC279D1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -39,9 +43,16 @@ Global
 		{BFE54C2F-0DED-4A12-9F38-148399A76332}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BFE54C2F-0DED-4A12-9F38-148399A76332}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{BFE54C2F-0DED-4A12-9F38-148399A76332}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DC5449DD-B58E-4DF7-BDF6-06EC588AFED4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DC5449DD-B58E-4DF7-BDF6-06EC588AFED4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DC5449DD-B58E-4DF7-BDF6-06EC588AFED4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DC5449DD-B58E-4DF7-BDF6-06EC588AFED4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{DC5449DD-B58E-4DF7-BDF6-06EC588AFED4} = {E5DAC5CE-8530-4F3B-8A9B-D91BFDC279D1}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BADF6C36-6E80-4279-BCEF-D213226D1E30}

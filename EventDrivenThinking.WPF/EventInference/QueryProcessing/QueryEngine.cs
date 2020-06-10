@@ -77,7 +77,10 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
                 {
                     if(_model == null)
                     {
-                        _model = ViewModelFactory<TModel>.Create(_serviceProvider);
+                        if (typeof(TModel).IsInterface)
+                            _model = ActivatorUtilities.GetServiceOrCreateInstance<TModel>(_serviceProvider);
+                        else
+                            _model = ViewModelFactory<TModel>.Create(_serviceProvider);
                     }
                 }
             }
@@ -94,8 +97,7 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             var projectionSchema = _projectionSchemaRegister.FindByModelType(typeof(TModel));
 
             var queryHandler = _serviceProvider.GetRequiredService<IQueryHandler<TQuery, TModel, TResult>>();
-            var queryParitioner =  _serviceProvider.GetService<IEnumerable<IQueryPartitioner<TQuery>>>()
-                .SingleOrDefault();
+            var queryParitioner =  GetQueryPartitioner<TQuery, TResult>();
             
             var partitionId = queryParitioner?.CalculatePartition(query);
 
@@ -120,6 +122,19 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             }
 
             return liveQuery;
+        }
+
+        private IQueryPartitioner<TQuery> GetQueryPartitioner<TQuery, TResult>() where TQuery : IQuery<TModel, TResult> where TResult: class
+        {
+            try
+            {
+                return _serviceProvider.GetService<IEnumerable<IQueryPartitioner<TQuery>>>()
+                    .SingleOrDefault();
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
         }
 
 

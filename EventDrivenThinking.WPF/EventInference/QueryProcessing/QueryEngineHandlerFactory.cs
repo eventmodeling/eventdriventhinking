@@ -24,7 +24,11 @@ namespace EventDrivenThinking.EventInference.QueryProcessing
             _getModel = getModel;
             _stream = stream;
             _schema = schema;
-            _lazyDispatcher = new Lazy<DispatcherQueue>(() => ActivatorUtilities.GetServiceOrCreateInstance<DispatcherQueue>(_serviceProvider));
+            _lazyDispatcher = new Lazy<DispatcherQueue>(() =>
+            {
+                //return ActivatorUtilities.GetServiceOrCreateInstance<DispatcherQueue>(_serviceProvider);
+                 return DispatcherQueue.Instance; 
+            });
             SupportedEventTypes = new TypeCollection(_schema.Events);
         }
 

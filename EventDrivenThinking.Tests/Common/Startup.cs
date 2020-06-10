@@ -10,6 +10,7 @@ using EventDrivenThinking.Carter;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.EventStore;
 using EventDrivenThinking.EventInference.Projections;
+using EventDrivenThinking.EventInference.Schema;
 using EventDrivenThinking.Example.Model.Domain.Hotel;
 using EventDrivenThinking.Example.Model.ReadModels.Hotel;
 using EventDrivenThinking.Integrations.SignalR;
@@ -50,8 +51,10 @@ namespace EventDrivenThinking.Tests.Common
 
                 c.Slices.SelectAll()
                     .Aggregates.BindCarter().WriteToEventStore()
-                    //.Projections.SubscribeFromEventStore()
+                    .Projections.UseEventStore(true)
                     .Processors.SubscribeFromEventStore()
+                    .Events.UseEventStore()
+                    .Queries.FromEventStore() 
                     .Commands.ToCommandHandler();
             });
 
@@ -66,6 +69,20 @@ namespace EventDrivenThinking.Tests.Common
                 .Where(x => typeof(IModel).IsAssignableFrom(x) && !x.IsAbstract && !x.IsInterface))
                 services.AddSingleton(modelType);
 
+            
+            foreach (var i in config.Services.QuerySchemaRegister)
+            {
+                services.AddTransient(
+                    typeof(IQueryHandler<,,>).MakeGenericType(i.Type, i.ModelType, i.ResultType), i.QueryHandlerType);
+
+                //foreach (var p in i.StreamPartitioners)
+                //    services.AddTransient(typeof(IQueryPartitioner<>).MakeGenericType(i.Type), p);
+                
+                foreach (var p in i.QueryPartitioners)
+                    services.AddTransient(typeof(IQueryPartitioner<>).MakeGenericType(i.Type), p);
+            }
+
+            services.AddSingleton<DispatcherQueue>();
             services.AddSingleton<IRoomAvailabilityModel, RoomAvailabilityModel>();
             services.AddSingleton<IModelFactory, ModelFactory>();
 
@@ -92,7 +109,9 @@ namespace EventDrivenThinking.Tests.Common
 
             app.ApplicationServices.GetService<IEventStoreHubInitializer>().Init();
             logger.Information("Started.");
-
+            ServiceProvider = app.ApplicationServices;
         }
+
+        public static IServiceProvider ServiceProvider;
     }
 }

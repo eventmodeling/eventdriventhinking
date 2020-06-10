@@ -8,12 +8,7 @@ namespace EventDrivenThinking.Example.Model.Domain.Hotel
 {
     public class HotelAggregate : Aggregate<HotelAggregate.State>
     {
-        public override Guid Id
-        {
-            get => base._state.Id;
-            set => _state.Id = (Guid) value;
-        } 
-        public class State
+        public class State : IId
         {
             private List<string> _availableRooms;
             public Guid Id { get; set; }

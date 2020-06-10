@@ -35,7 +35,10 @@ namespace EventDrivenThinking.EventInference.Core
             {
                 _id = value;
                 if (_state is IId _stateId)
+                {
                     _stateId.Id = value;
+                    _state = (TState) _stateId;
+                }
             }
         }
 

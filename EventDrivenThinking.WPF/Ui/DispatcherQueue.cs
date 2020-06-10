@@ -49,6 +49,8 @@ namespace EventDrivenThinking.Ui
         private DispatcherQueue()
         {
             _synchronizationContext = SynchronizationContext.Current;
+            if(_synchronizationContext == null)
+                _synchronizationContext = new SynchronizationContext();
             _queue = new ConcurrentQueue<Action>();
         }
         public void Enqueue(Func<Task> task)
