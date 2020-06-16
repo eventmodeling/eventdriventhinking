@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions.Read;
 using EventDrivenThinking.EventInference.Core;
 using EventDrivenThinking.EventInference.Models;
+using EventDrivenThinking.SimpleWebApp.Domain.Profile;
 using EventDrivenThinking.SimpleWebApp.User;
 
 namespace EventDrivenThinking.SimpleWebApp.Views.User
@@ -16,9 +17,14 @@ namespace EventDrivenThinking.SimpleWebApp.Views.User
         {
         }
 
+        private static async Task Given(UserModel model, EventMetadata m, ProfileRenamed ev)
+        {
+            
+        }
+
         private static async Task Given(UserModel model, EventMetadata m, UserCreated ev)
         {
-
+           
         }
     }
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices.ComTypes;
 using System.Threading.Tasks;
 using EventDrivenThinking.EventInference.Abstractions;
 using EventDrivenThinking.EventInference.Abstractions.Write;
@@ -9,14 +10,26 @@ using EventDrivenThinking.EventInference.Models;
 
 namespace EventDrivenThinking.SimpleWebApp.User
 {
-    public class UserProcessor : Processor<UserProcessor>
+    public class UserEmailNotifer : Processor<UserEmailNotifer>
     {
         public IEnumerable<(Guid, ICommand)> When(EventMetadata m, UserCreated ev)
         {
-            yield break;
+            // here we calculate how the e-mail should look like...
+
+            yield return (Guid.NewGuid(), new SendEmail());
         }
     }
 
+    public class SendEmail : ICommand
+    {
+        public Guid Id { get; set; }
+
+        public SendEmail()
+        {
+            Id = Guid.NewGuid();
+        }
+    }
+    
     public class UserAggregate : Aggregate<UserAggregate.State>
     {
         public struct State
@@ -28,7 +41,7 @@ namespace EventDrivenThinking.SimpleWebApp.User
         {
             return st;
         }
-        private static IEnumerable<IEvent> When(State st, CreateUser user)
+        private static IEnumerable<IEvent> When(State st, CreateUser cmd)
         {
             yield return new UserCreated();
         }
@@ -48,5 +61,10 @@ namespace EventDrivenThinking.SimpleWebApp.User
         {
             Id = Guid.NewGuid();
         }
+    }
+
+    public class ChangeName : ICommand
+    {
+        public Guid Id { get; set; }
     }
 }
