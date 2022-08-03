@@ -17,7 +17,7 @@
     <PackageReference Include="Fastenshtein" Version="1.0.0.5" />
     <PackageReference Include="FluentAssertions" Version="5.10.3" />
     <PackageReference Include="Humanizer" Version="2.8.11" />
-    <PackageReference Include="Microsoft.AspNetCore.Owin" Version="3.1.4" />
+    <PackageReference Include="Microsoft.AspNetCore.Owin" Version="3.1.8" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR" Version="1.1.0" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Protocols.NewtonsoftJson" Version="3.1.4" />
     <PackageReference Include="Microsoft.Diagnostics.NETCore.Client" Version="0.2.61701" />
