@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="AutoFixture" Version="4.11.0" />
     <PackageReference Include="AutoFixture.Xunit2" Version="4.11.0" />
-    <PackageReference Include="AutoMapper" Version="9.0.0" />
+    <PackageReference Include="AutoMapper" Version="16.1.1" />
     <PackageReference Include="Carter" Version="5.1.0" />
     <PackageReference Include="Docker.DotNet" Version="3.125.2" />
     <PackageReference Include="EventStore.Client.Embedded" Version="6.0.0-preview3" />
